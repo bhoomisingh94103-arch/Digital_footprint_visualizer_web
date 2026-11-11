@@ -260,8 +260,21 @@
         const box = document.getElementById('ping-result-box');
         
         try {
-            const res = await fetch(`/api-status/ping/${serviceName}`, { method: 'POST' });
-            const data = await res.json();
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+            const res = await fetch(`/api-status/ping/${serviceName}`, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-CSRFToken': csrfToken
+                }
+            });
+            const contentType = res.headers.get('content-type') || '';
+            let data;
+            if (contentType.includes('application/json')) {
+                data = await res.json();
+            } else {
+                throw new Error(`Non-JSON response (HTTP ${res.status})`);
+            }
             
             box.classList.remove('hidden');
             document.getElementById('ping-service-name').textContent = data.service;

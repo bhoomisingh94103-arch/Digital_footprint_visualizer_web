@@ -28,6 +28,40 @@ document.addEventListener('DOMContentLoaded', function () {
 
     let currentTargetEmail = '';
 
+    // Retrieve CSRF token from page meta header
+    function getCsrfToken() {
+        return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+    }
+
+    // Safely parse JSON responses and gracefully handle HTML error pages
+    async function parseJsonResponse(response) {
+        const contentType = response.headers.get('content-type') || '';
+        if (contentType.includes('application/json')) {
+            try {
+                return await response.json();
+            } catch (jsonErr) {
+                throw new Error('Received malformed JSON from cybersecurity endpoint.');
+            }
+        }
+
+        // Server returned HTML (e.g. 500 fault, 404, or reverse proxy timeout)
+        const rawText = await response.text();
+        let errMsg = `Security gateway returned HTTP ${response.status}`;
+
+        const match = rawText.match(/<title>([^<]+)<\/title>/i) || rawText.match(/<p>([^<]+)<\/p>/i);
+        if (match && match[1]) {
+            errMsg += `: ${match[1].replace(/<[^>]*>/g, '').trim()}`;
+        } else if (response.status === 404) {
+            errMsg = 'Security assessment endpoint not found (404).';
+        } else if (response.status === 500) {
+            errMsg = 'Internal threat processing fault (500). Please try again.';
+        } else if (response.status === 502 || response.status === 504) {
+            errMsg = 'Threat intelligence gateway timeout (502/504). Please try again.';
+        }
+
+        throw new Error(errMsg);
+    }
+
     // Step 1: Submit Form to Request OTP & Verify Mailbox Existence
     scanForm.addEventListener('submit', async function (e) {
         e.preventDefault();
@@ -63,7 +97,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Accept': 'application/json'
+                    'Accept': 'application/json',
+                    'X-CSRFToken': getCsrfToken()
                 },
                 body: JSON.stringify({
                     email: email,
@@ -71,7 +106,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 })
             });
 
-            const data = await response.json();
+            const data = await parseJsonResponse(response);
 
             if (!response.ok || !data.success) {
                 throw new Error(data.error || "We couldn't verify whether this email address exists. Please check the address and try again.");
@@ -127,7 +162,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Accept': 'application/json'
+                        'Accept': 'application/json',
+                        'X-CSRFToken': getCsrfToken()
                     },
                     body: JSON.stringify({
                         email: currentTargetEmail,
@@ -135,7 +171,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     })
                 });
 
-                const data = await response.json();
+                const data = await parseJsonResponse(response);
 
                 if (!response.ok || !data.success) {
                     throw new Error(data.error || 'Verification failed. Please check the code.');
@@ -183,14 +219,15 @@ document.addEventListener('DOMContentLoaded', function () {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Accept': 'application/json'
+                        'Accept': 'application/json',
+                        'X-CSRFToken': getCsrfToken()
                     },
                     body: JSON.stringify({
                         email: currentTargetEmail,
                         consent: true
                     })
                 });
-                const data = await response.json();
+                const data = await parseJsonResponse(response);
                 if (!response.ok || !data.success) {
                     throw new Error(data.error || 'Failed to resend verification code.');
                 }
@@ -228,7 +265,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Accept': 'application/json'
+                    'Accept': 'application/json',
+                    'X-CSRFToken': getCsrfToken()
                 },
                 body: JSON.stringify({
                     email: email,
@@ -238,7 +276,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             updateStatusStep('Analyzing visitor network privacy & reputation indicators...', '65%');
 
-            const data = await response.json();
+            const data = await parseJsonResponse(response);
 
             if (!response.ok || !data.success) {
                 throw new Error(data.error || 'Failed to complete cybersecurity assessment.');

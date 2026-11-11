@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block title %}400 — Bad Security Request{% endblock %}
+
+{% block content %}
+<div class="min-h-[70vh] flex items-center justify-center px-4 py-16 text-center">
+    <div class="glass-panel p-10 rounded-3xl max-w-md w-full space-y-4 border border-forest-700/60 shadow-[0_20px_50px_rgba(0,0,0,0.6)]">
+        <div class="w-16 h-16 rounded-2xl bg-forest-900/60 border border-amber-500/30 text-amber-400 flex items-center justify-center mx-auto text-2xl font-bold font-mono shadow-lg shadow-amber-950/40">
+            400
+        </div>
+        <h2 class="text-2xl font-extrabold text-white">Invalid Security Request</h2>
+        <p class="text-xs text-slate-400 leading-relaxed">
+            {{ description or 'The request could not be processed due to missing security credentials, invalid parameters, or an expired security token.' }}
+        </p>
+        <div class="pt-4">
+            <a href="{{ url_for('index') }}" class="btn-cyber-primary px-6 py-2.5 rounded-xl text-xs font-semibold inline-block">
+                Return to Defense Portal
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

@@ -42,17 +42,25 @@ document.addEventListener('DOMContentLoaded', function () {
         const typingId = showTypingIndicator();
 
         try {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
             const res = await fetch('/api/chat/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Accept': 'application/json'
+                    'Accept': 'application/json',
+                    'X-CSRFToken': csrfToken
                 },
                 body: JSON.stringify({ message: text })
             });
 
             removeTypingIndicator(typingId);
-            const data = await res.json();
+            const contentType = res.headers.get('content-type') || '';
+            let data;
+            if (contentType.includes('application/json')) {
+                data = await res.json();
+            } else {
+                data = { success: false, error: 'Received unexpected response format from assistant server.' };
+            }
 
             if (data.success) {
                 appendMessage('assistant', data.response, data.engine, data.is_ai);

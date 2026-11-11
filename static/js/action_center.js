@@ -13,11 +13,13 @@ document.addEventListener('DOMContentLoaded', function () {
             const isCompleted = this.checked;
 
             try {
+                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
                 const res = await fetch('/action-center/api/toggle-task', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Accept': 'application/json'
+                        'Accept': 'application/json',
+                        'X-CSRFToken': csrfToken
                     },
                     body: JSON.stringify({
                         task_id: taskId,
@@ -26,6 +28,10 @@ document.addEventListener('DOMContentLoaded', function () {
                     })
                 });
 
+                const contentType = res.headers.get('content-type') || '';
+                if (!contentType.includes('application/json')) {
+                    throw new Error(`Server returned non-JSON HTTP ${res.status}`);
+                }
                 const data = await res.json();
                 if (data.success) {
                     if (data.progress_pct !== undefined) {

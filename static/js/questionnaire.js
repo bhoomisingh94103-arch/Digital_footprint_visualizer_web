@@ -119,17 +119,28 @@ document.addEventListener('DOMContentLoaded', function () {
             submitBtn.disabled = true;
             submitBtn.textContent = 'Calculating Privacy Index...';
 
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
             try {
                 const res = await fetch('/assessment/api/submit-quiz', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Accept': 'application/json'
+                        'Accept': 'application/json',
+                        'X-CSRFToken': csrfToken
                     },
                     body: JSON.stringify({ responses: userAnswers })
                 });
 
-                const data = await res.json();
+                const contentType = res.headers.get('content-type') || '';
+                let data;
+                if (contentType.includes('application/json')) {
+                    data = await res.json();
+                } else {
+                    const text = await res.text();
+                    throw new Error(`Server returned HTTP ${res.status}: ${text.substring(0, 100)}...`);
+                }
+
                 if (!res.ok || !data.success) {
                     throw new Error(data.error || 'Failed to submit privacy assessment.');
                 }
@@ -152,7 +163,7 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('qres-overall-score').textContent = data.overall_score;
         document.getElementById('qres-risk-level').textContent = data.risk_level;
         document.getElementById('qres-summary').textContent = data.summary;
-        
+
         const pdfBtn = document.getElementById('qres-pdf-download');
         if (pdfBtn) pdfBtn.href = data.pdf_url;
 

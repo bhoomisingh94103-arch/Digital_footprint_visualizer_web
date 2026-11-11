@@ -10,6 +10,7 @@ Strictly adheres to cybersecurity verification principles:
 import smtplib
 import socket
 import re
+from functools import lru_cache
 from datetime import datetime, timezone, timedelta
 import email_validator
 from email_validator import EmailNotValidError, EmailSyntaxError
@@ -58,6 +59,44 @@ def validate_email_syntax(email: str) -> tuple[bool, str, str]:
         return False, email_clean, "Invalid email syntax. Please check the address and try again."
 
 
+@lru_cache(maxsize=256)
+def _resolve_domain_mx_cached(domain: str) -> tuple[bool, tuple, str]:
+    """Cached DNS MX resolution to prevent latency spikes and timeouts."""
+    try:
+        resolver = dns.resolver.Resolver()
+        resolver.timeout = 5.0
+        resolver.lifetime = 5.0
+
+        answers = resolver.resolve(domain, 'MX')
+        mx_hosts = []
+        for rdata in answers:
+            host_str = str(rdata.exchange).rstrip('.')
+            # RFC 7505 Null MX: an MX record of '.' indicates the domain explicitly does not accept email
+            if host_str == '' or host_str == '.':
+                return False, (), f"Domain '{domain}' explicitly refuses email delivery (Null MX record configured)."
+            mx_hosts.append((rdata.preference, host_str))
+
+        # Sort by priority
+        mx_hosts.sort(key=lambda x: x[0])
+        clean_hosts = tuple(h[1] for h in mx_hosts)
+
+        if not clean_hosts:
+            return False, (), f"Domain '{domain}' has no valid mail exchange (MX) hosts configured."
+
+        return True, clean_hosts, ""
+
+    except NXDOMAIN:
+        return False, (), f"The domain '{domain}' does not exist. Please check the email domain and try again."
+    except NoAnswer:
+        return False, (), f"The domain '{domain}' does not have mail exchange (MX) records configured and cannot receive emails."
+    except NoNameservers:
+        return False, (), "We couldn't verify whether this email address exists. Please check the address and try again."
+    except Timeout:
+        return False, (), "We couldn't verify whether this email address exists. Please check the address and try again."
+    except Exception:
+        return False, (), "We couldn't verify whether this email address exists. Please check the address and try again."
+
+
 def check_domain_mx(domain_or_email: str) -> tuple[bool, list, str]:
     """
     Query DNS MX records to confirm that the domain has mail exchangers capable of receiving emails.
@@ -79,39 +118,8 @@ def check_domain_mx(domain_or_email: str) -> tuple[bool, list, str]:
     if domain in ('localhost', 'local', 'test', 'invalid'):
         return False, [], f"Domain '{domain}' is a reserved local test domain and cannot receive public emails."
 
-    try:
-        resolver = dns.resolver.Resolver()
-        resolver.timeout = 5.0
-        resolver.lifetime = 5.0
-
-        answers = resolver.resolve(domain, 'MX')
-        mx_hosts = []
-        for rdata in answers:
-            host_str = str(rdata.exchange).rstrip('.')
-            # RFC 7505 Null MX: an MX record of '.' indicates the domain explicitly does not accept email
-            if host_str == '' or host_str == '.':
-                return False, [], f"Domain '{domain}' explicitly refuses email delivery (Null MX record configured)."
-            mx_hosts.append((rdata.preference, host_str))
-
-        # Sort by priority
-        mx_hosts.sort(key=lambda x: x[0])
-        clean_hosts = [h[1] for h in mx_hosts]
-
-        if not clean_hosts:
-            return False, [], f"Domain '{domain}' has no valid mail exchange (MX) hosts configured."
-
-        return True, clean_hosts, ""
-
-    except NXDOMAIN:
-        return False, [], f"The domain '{domain}' does not exist. Please check the email domain and try again."
-    except NoAnswer:
-        return False, [], f"The domain '{domain}' does not have mail exchange (MX) records configured and cannot receive emails."
-    except NoNameservers:
-        return False, [], "We couldn't verify whether this email address exists. Please check the address and try again."
-    except Timeout:
-        return False, [], "We couldn't verify whether this email address exists. Please check the address and try again."
-    except Exception:
-        return False, [], "We couldn't verify whether this email address exists. Please check the address and try again."
+    has_mx, hosts_tuple, err = _resolve_domain_mx_cached(domain)
+    return has_mx, list(hosts_tuple), err
 
 
 def parse_smtp_rejection(code: int, response_text: str, recipient: str) -> str:

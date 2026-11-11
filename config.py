@@ -7,15 +7,20 @@ load_dotenv()
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
+def _format_db_url(url):
+    """Normalize database URL for SQLAlchemy (Render PostgreSQL uses postgres://)."""
+    if not url:
+        return f"sqlite:///{os.path.join(BASE_DIR, 'digital_footprint.db')}"
+    if url.startswith('postgres://'):
+        return url.replace('postgres://', 'postgresql://', 1)
+    return url
+
 class Config:
     """Base application configuration."""
     SECRET_KEY = os.environ.get('SECRET_KEY', 'dfv-cybersec-secret-key-change-in-production-2026!#*')
     
     # Database
-    SQLALCHEMY_DATABASE_URI = os.environ.get(
-        'DATABASE_URL',
-        f"sqlite:///{os.path.join(BASE_DIR, 'digital_footprint.db')}"
-    )
+    SQLALCHEMY_DATABASE_URI = _format_db_url(os.environ.get('DATABASE_URL'))
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     # Session Security
@@ -23,7 +28,7 @@ class Config:
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = 'Lax'
     
-    # CSRF
+    # CSRF Protection
     WTF_CSRF_ENABLED = True
     WTF_CSRF_SECRET_KEY = os.environ.get('WTF_CSRF_SECRET_KEY', 'csrf-dfv-secret-key-2026-guard')
     
@@ -70,6 +75,10 @@ class ProductionConfig(Config):
     DEBUG = False
     TESTING = False
     SESSION_COOKIE_SECURE = True
+    # Ensure SECRET_KEY falls back if not set in Render environment
+    SECRET_KEY = os.environ.get('SECRET_KEY', 'dfv-prod-cybersec-secret-key-2026-guard')
+    WTF_CSRF_SECRET_KEY = os.environ.get('WTF_CSRF_SECRET_KEY') or SECRET_KEY
+    SQLALCHEMY_DATABASE_URI = _format_db_url(os.environ.get('DATABASE_URL'))
 
 
 config_by_name = {
@@ -78,18 +87,3 @@ config_by_name = {
     'production': ProductionConfig,
     'default': DevelopmentConfig
 }
-
-
-class ProductionConfig(Config):
-    DEBUG = False
-    TESTING = False
-    SECRET_KEY = os.environ.get('SECRET_KEY')
-    WTF_CSRF_SECRET_KEY = os.environ.get('WTF_CSRF_SECRET_KEY') or SECRET_KEY
-    SESSION_COOKIE_SECURE = True
-
-    # Render PostgreSQL database
-    SQLALCHEMY_DATABASE_URI = os.environ.get(
-        'DATABASE_URL',
-        Config.SQLALCHEMY_DATABASE_URI
-    )
-
