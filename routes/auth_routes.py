@@ -24,15 +24,15 @@ def signup():
             flash('Username must be at least 3 characters long.', 'danger')
             return render_template('auth/signup.html', username=username, email=email)
 
-        # 2. Email syntax validation
+        # 2. Email syntax validation (Rule A)
         is_valid_syntax, clean_email, syntax_err = validate_email_syntax(email)
         if not is_valid_syntax:
             flash(syntax_err, 'danger')
             return render_template('auth/signup.html', username=username, email=email)
 
-        # 3. Domain MX check
-        has_mx, mx_hosts, mx_err = check_domain_mx(clean_email)
-        if not has_mx:
+        # 3. Domain MX check (Rule B)
+        is_valid_domain, mx_hosts, mx_err, is_definitive_err = check_domain_mx(clean_email)
+        if not is_valid_domain and is_definitive_err:
             flash(mx_err, 'danger')
             return render_template('auth/signup.html', username=username, email=email)
 
@@ -65,17 +65,24 @@ def signup():
         db.session.commit()
 
         # 7. Issue OTP via SMTP
-        otp, sent, msg = issue_user_otp(new_user)
+        otp, sent, msg, is_explicit_rejection = issue_user_otp(new_user)
 
-        if not sent:
-            # If OTP delivery fails, abort registration & rollback user to prevent unverified phantom records
+        if not sent and is_explicit_rejection:
+            # Rule D: If SMTP explicitly rejects recipient, abort registration & rollback user
             db.session.delete(new_user)
             db.session.commit()
             flash(msg, 'danger')
             return render_template('auth/signup.html', username=username, email=email)
 
         session['verify_user_id'] = new_user.id
-        flash(f"Verification OTP has been sent via SMTP to {clean_email}. Please enter the 6-digit code.", 'success')
+        if sent:
+            flash(f"Verification OTP has been sent via SMTP to {clean_email}. Please enter the 6-digit code.", 'success')
+        else:
+            if not current_app.config.get('MAIL_SERVER'):
+                flash(f"Account registered. [Notice: SMTP unconfigured in .env — verification code is {otp}]", 'info')
+            else:
+                flash(f"Verification OTP dispatch initiated for {clean_email}. Please enter the 6-digit code.", 'info')
+
         return redirect(url_for('auth.verify_otp'))
 
     return render_template('auth/signup.html')
@@ -100,13 +107,19 @@ def login():
 
         # If user is not verified, require OTP verification
         if not user.is_verified:
-            otp, sent, msg = issue_user_otp(user)
-            if not sent:
+            otp, sent, msg, is_explicit_rejection = issue_user_otp(user)
+            if not sent and is_explicit_rejection:
                 flash(msg, 'danger')
                 return render_template('auth/login.html', login_id=login_id)
 
             session['verify_user_id'] = user.id
-            flash("Your account email is not yet verified. A new OTP has been sent to your email.", 'info')
+            if sent:
+                flash("Your account email is not yet verified. A new OTP has been sent to your email.", 'info')
+            else:
+                if not current_app.config.get('MAIL_SERVER'):
+                    flash(f"Verification needed. [Notice: SMTP unconfigured in .env — OTP is {otp}]", 'info')
+                else:
+                    flash("Verification code dispatch initiated. Please check your inbox.", 'info')
             return redirect(url_for('auth.verify_otp'))
 
         # Log user in
@@ -168,11 +181,16 @@ def resend_otp():
     if not user:
         return redirect(url_for('auth.login'))
 
-    otp, sent, msg = issue_user_otp(user)
+    otp, sent, msg, is_explicit_rejection = issue_user_otp(user)
     if sent:
         flash(f"A fresh verification code was dispatched to {user.email}.", 'success')
-    else:
+    elif is_explicit_rejection:
         flash(msg, 'danger')
+    else:
+        if not current_app.config.get('MAIL_SERVER'):
+            flash(f"Fresh verification code generated. [Notice: SMTP unconfigured in .env — OTP is {otp}]", 'info')
+        else:
+            flash(f"Verification code dispatch initiated for {user.email}. Please check your inbox.", 'info')
 
     return redirect(url_for('auth.verify_otp'))
 
@@ -191,14 +209,21 @@ def forgot_password():
         user = User.query.filter_by(email=clean_email).first()
 
         if user:
-            otp, sent, msg = issue_user_otp(user)
+            otp, sent, msg, is_explicit_rejection = issue_user_otp(user)
             if sent:
                 session['reset_user_id'] = user.id
                 flash(f"Password reset instructions and OTP sent to {clean_email}.", 'success')
                 return redirect(url_for('auth.reset_password'))
-            else:
+            elif is_explicit_rejection:
                 flash(msg, 'danger')
                 return render_template('auth/forgot_password.html')
+            else:
+                session['reset_user_id'] = user.id
+                if not current_app.config.get('MAIL_SERVER'):
+                    flash(f"Password reset initiated. [Notice: SMTP unconfigured — OTP is {otp}]", 'info')
+                else:
+                    flash("Password reset instructions dispatched. Please check your email.", 'info')
+                return redirect(url_for('auth.reset_password'))
         else:
             # Prevent email enumeration
             flash("If that email address is associated with an account, a reset code has been dispatched.", 'info')

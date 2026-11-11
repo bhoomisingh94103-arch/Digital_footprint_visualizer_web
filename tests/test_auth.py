@@ -21,7 +21,7 @@ def test_otp_flow_and_expiration():
         db.session.commit()
         
         # 1. Issue OTP
-        otp, sent, msg = issue_user_otp(user)
+        otp, sent, msg, is_rejection = issue_user_otp(user)
         assert len(otp) == 6
         assert user.otp_code == otp
         assert user.otp_attempts == 0

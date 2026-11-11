@@ -1,5 +1,7 @@
 import json
 from datetime import datetime, timezone
+from unittest.mock import patch, MagicMock
+import smtplib
 from app import create_app
 from models import db, EmailAssessment, BreachFinding, PDFReport
 
@@ -53,7 +55,7 @@ def test_api_404_returns_json():
 
 
 def test_invalid_email_syntax_handling():
-    """Test entering invalid email syntax."""
+    """Rule A: Reject invalid email syntax with 'Please enter a valid email address.'"""
     app = create_app('production')
     client = app.test_client()
 
@@ -65,7 +67,7 @@ def test_invalid_email_syntax_handling():
     assert res.content_type.startswith('application/json')
     data = res.get_json()
     assert data['success'] is False
-    assert "Invalid email syntax" in data['error']
+    assert data['error'] == "Please enter a valid email address."
 
 
 def test_unreachable_domain_email_handling():
@@ -73,19 +75,22 @@ def test_unreachable_domain_email_handling():
     app = create_app('production')
     client = app.test_client()
 
-    res = client.post('/assessment/api/request-scan-otp', json={
-        'email': 'user@nonexistent-fake-domain-192837.org',
-        'consent': True
-    })
-    assert res.status_code == 400
-    assert res.content_type.startswith('application/json')
-    data = res.get_json()
-    assert data['success'] is False
-    assert "does not exist" in data['error'] or "cannot receive" in data['error']
+    with patch('services.email_verifier.check_domain_mx', return_value=(False, [], "The domain 'nonexistent-fake-domain-192837.org' does not exist.", True)):
+        res = client.post('/assessment/api/request-scan-otp', json={
+            'email': 'user@nonexistent-fake-domain-192837.org',
+            'consent': True
+        })
+        assert res.status_code == 400
+        assert res.content_type.startswith('application/json')
+        data = res.get_json()
+        assert data['success'] is False
+        assert "does not exist" in data['error'] or "cannot receive" in data['error']
 
 
-def test_unconfigured_smtp_cannot_receive_otp():
-    """Test an email when SMTP cannot dispatch OTP."""
+def test_unconfirmed_mailbox_allows_otp_stage_rule_c():
+    """Rule C: When mailbox existence cannot be confirmed upfront (e.g. SMTP unconfigured),
+    do NOT automatically reject the email. Show verification-pending message and allow OTP entry.
+    """
     app = create_app('production')
     client = app.test_client()
 
@@ -93,11 +98,38 @@ def test_unconfigured_smtp_cannot_receive_otp():
         'email': 'realmailbox@gmail.com',
         'consent': True
     })
-    assert res.status_code == 400
+    assert res.status_code == 200
     assert res.content_type.startswith('application/json')
     data = res.get_json()
-    assert data['success'] is False
-    assert "We couldn't verify whether this email address exists. Please check the address and try again." in data['error']
+    assert data['success'] is True
+    assert data['email'] == 'realmailbox@gmail.com'
+    assert data.get('verification_pending') is True
+
+
+def test_smtp_explicit_rejection_rule_d():
+    """Rule D: SMTP explicitly rejects recipient -> Stop process and show clear delivery error."""
+    app = create_app('testing')
+    app.config['MAIL_SERVER'] = 'smtp.fake.local'
+    app.config['MAIL_USERNAME'] = 'user'
+    app.config['MAIL_PASSWORD'] = 'pass'
+    client = app.test_client()
+
+    with patch('smtplib.SMTP') as mock_smtp:
+        instance = MagicMock()
+        mock_smtp.return_value = instance
+        # Simulate 550 5.1.1 explicit recipient rejection
+        instance.sendmail.side_effect = smtplib.SMTPRecipientsRefused({
+            'rejected_mailbox@gmail.com': (550, b'5.1.1 The email account that you tried to reach does not exist.')
+        })
+
+        res = client.post('/assessment/api/request-scan-otp', json={
+            'email': 'rejected_mailbox@gmail.com',
+            'consent': True
+        })
+        assert res.status_code == 400
+        data = res.get_json()
+        assert data['success'] is False
+        assert "550 5.1.1: Mailbox does not exist" in data['error']
 
 
 def test_complete_assessment_workflow_and_db_saving():
@@ -149,4 +181,3 @@ def test_complete_assessment_workflow_and_db_saving():
         pdf = PDFReport.query.filter_by(assessment_id=assessment_id).first()
         assert pdf is not None
         assert pdf.filename.endswith('.pdf')
-

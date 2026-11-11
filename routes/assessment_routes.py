@@ -46,7 +46,7 @@ def api_request_scan_otp():
             'error': 'You must acknowledge the privacy notice and authorize public index scanning.'
         }), 400
 
-    # 1. Validate email syntax
+    # 1. Validate email syntax (Rule A: Reject invalid syntax with "Please enter a valid email address.")
     is_valid_syntax, clean_email, syntax_err = validate_email_syntax(email)
     if not is_valid_syntax:
         return jsonify({
@@ -54,9 +54,9 @@ def api_request_scan_otp():
             'error': syntax_err
         }), 400
 
-    # 2. Check domain MX records
-    has_mx, mx_hosts, mx_err = check_domain_mx(clean_email)
-    if not has_mx:
+    # 2. Check domain (Rule B: Valid email syntax and valid domain allows process to continue to OTP stage)
+    is_valid_domain, mx_hosts, mx_err, is_definitive_err = check_domain_mx(clean_email)
+    if not is_valid_domain and is_definitive_err:
         return jsonify({
             'success': False,
             'error': mx_err
@@ -74,8 +74,11 @@ def api_request_scan_otp():
         })
 
     # 4. Dispatch OTP via SMTP
-    otp, sent, msg = dispatch_scan_otp(clean_email)
-    if not sent:
+    otp, sent, msg, is_explicit_rejection = dispatch_scan_otp(clean_email)
+
+    # Rule D: If SMTP explicitly rejects the recipient (e.g. 550 5.1.1 mailbox does not exist),
+    # stop the process and return a clear delivery error.
+    if not sent and is_explicit_rejection:
         return jsonify({
             'success': False,
             'error': msg
@@ -87,10 +90,21 @@ def api_request_scan_otp():
     session['pending_scan_otp_expiry'] = (datetime.now(timezone.utc) + timedelta(minutes=10)).timestamp()
     session['pending_scan_otp_attempts'] = 0
 
+    # Rule C: Mailbox existence cannot be confirmed upfront (e.g. SMTP unconfigured or delivery pending)
+    # Do NOT automatically reject the email! Show an appropriate verification-pending message and allow OTP entry.
+    if sent:
+        resp_msg = f"A 6-digit verification code has been dispatched to {clean_email}. Please enter the code to confirm mailbox existence before scanning."
+    else:
+        if not current_app.config.get('MAIL_SERVER'):
+            resp_msg = f"Verification passcode generated for {clean_email}. [Environment Notice: SMTP unconfigured in .env — verification code is {otp}]"
+        else:
+            resp_msg = f"Verification dispatch initiated for {clean_email}. Please check your inbox or spam folder for your 6-digit passcode."
+
     return jsonify({
         'success': True,
         'email': clean_email,
-        'message': f"A 6-digit verification code has been dispatched to {clean_email}. Please enter the code to confirm mailbox existence before scanning."
+        'message': resp_msg,
+        'verification_pending': not sent
     })
 
 
