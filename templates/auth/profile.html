@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}User Profile — Digital Footprint Intelligence{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 py-12">
+    <div
+        class="glass-panel p-8 rounded-2xl relative overflow-hidden mb-8 border border-forest-700/60 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+        <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+            <div class="flex items-center gap-4">
+                <div
+                    class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-emerald-500 to-mint-400 p-[2px] shadow-xl shadow-emerald-950/50">
+                    <div
+                        class="w-full h-full bg-forest-950 rounded-[14px] flex items-center justify-center font-bold text-2xl text-mint-300">
+                        {{ user.username[0].upper() }}
+                    </div>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h2 class="text-2xl font-extrabold text-white">{{ user.username }}</h2>
+                        <span
+                            class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-950/80 text-mint-300 border border-emerald-700/80 flex items-center gap-1 shadow-sm">
+                            <span class="w-1.5 h-1.5 rounded-full bg-mint-400 animate-pulse"></span> Verified Account
+                        </span>
+                    </div>
+                    <p class="text-xs text-slate-400 mt-0.5">{{ user.email }}</p>
+                    <p class="text-[11px] text-slate-500 mt-1">Member since {{ user.created_at.strftime("%B %d, %Y") }}
+                    </p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <a href="{{ url_for('assessment.history') }}"
+                    class="btn-cyber-secondary px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5">
+                    <i data-lucide="history" class="w-3.5 h-3.5 text-sage-400"></i> Scan History
+                </a>
+                <a href="{{ url_for('auth.logout') }}"
+                    class="px-4 py-2 rounded-xl bg-rose-950/40 text-rose-300 border border-rose-800/60 hover:bg-rose-900/60 text-xs font-semibold transition-colors">
+                    Log Out
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Security Stats & Storage Isolation -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="p-6 rounded-2xl bg-forest-900/40 border border-forest-800/80">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-xs text-slate-400 font-medium">Email Assessments</span>
+                <i data-lucide="mail-search" class="w-4 h-4 text-mint-400"></i>
+            </div>
+            <div class="text-2xl font-bold text-white">{{ total_scans }}</div>
+            <p class="text-[11px] text-slate-500 mt-1">Mode A scans linked to your account</p>
+        </div>
+
+        <div class="p-6 rounded-2xl bg-forest-900/40 border border-forest-800/80">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-xs text-slate-400 font-medium">Privacy Questionnaires</span>
+                <i data-lucide="clipboard-check" class="w-4 h-4 text-emerald-400"></i>
+            </div>
+            <div class="text-2xl font-bold text-white">{{ total_quizzes }}</div>
+            <p class="text-[11px] text-slate-500 mt-1">Mode B assessments completed</p>
+        </div>
+
+        <div class="p-6 rounded-2xl bg-forest-900/40 border border-forest-800/80">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-xs text-slate-400 font-medium">Data Privacy Mode</span>
+                <i data-lucide="shield-check" class="w-4 h-4 text-mint-400"></i>
+            </div>
+            <div class="text-2xl font-bold text-mint-400">Isolated</div>
+            <p class="text-[11px] text-slate-500 mt-1">User-isolated rows; no cross-leakage</p>
+        </div>
+    </div>
+
+    <!-- Data Management Panel -->
+    <div class="glass-panel p-6 rounded-2xl border border-forest-700/60">
+        <h3 class="text-base font-bold text-white mb-2">Personal Data & History Retention</h3>
+        <p class="text-xs text-slate-400 mb-6">
+            You retain absolute ownership over your assessment records. You can delete individual scans from your
+            history, or purge all scan data at any time.
+        </p>
+        <div class="flex flex-wrap items-center gap-4">
+            <a href="{{ url_for('assessment.history') }}"
+                class="btn-cyber-primary px-4 py-2 rounded-xl text-xs font-semibold">
+                Manage Individual Records
+            </a>
+            <form method="POST" action="{{ url_for('assessment.clear_history') }}"
+                onsubmit="return confirm('Are you sure you want to permanently delete all your assessment history? This action cannot be undone.');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                <button type="submit"
+                    class="px-4 py-2 rounded-xl bg-forest-950 text-rose-400 border border-rose-900/80 hover:bg-rose-950/60 text-xs font-semibold transition-colors">
+                    Clear All Personal History
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

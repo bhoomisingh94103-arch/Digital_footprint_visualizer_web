@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+
+{% block title %}Cybersecurity Dashboard — Digital Footprint Intelligence{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10">
+    
+    <!-- Dashboard Top Bar -->
+    <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div>
+            <h1 class="text-3xl font-extrabold text-white">Cybersecurity & Risk Dashboard</h1>
+            <p class="text-xs text-slate-400 mt-1">Aggregated personal threat intelligence, real breach findings, and security postures.</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <a href="{{ url_for('assessment.mode_a') }}" class="btn-cyber-primary px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-1.5">
+                <i data-lucide="plus" class="w-4 h-4"></i> New Email Scan
+            </a>
+            <a href="{{ url_for('assessment.mode_b') }}" class="btn-cyber-secondary px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-1.5">
+                <i data-lucide="clipboard-check" class="w-4 h-4 text-sage-400"></i> Take Quiz
+            </a>
+        </div>
+    </div>
+
+    <!-- 4 High-Level Metric Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        
+        <!-- Total Assessments -->
+        <div class="glass-panel p-5 rounded-2xl relative overflow-hidden">
+            <div class="flex items-center justify-between text-slate-400 mb-2">
+                <span class="text-xs font-medium uppercase font-mono tracking-wider">Total Assessments</span>
+                <i data-lucide="activity" class="w-4 h-4 text-mint-400"></i>
+            </div>
+            <div class="text-3xl font-extrabold text-white font-mono">{{ total_assessments }}</div>
+            <p class="text-[11px] text-slate-500 mt-1">Mode A Scans + Mode B Quizzes</p>
+        </div>
+
+        <!-- Total Breaches Found -->
+        <div class="glass-panel p-5 rounded-2xl relative overflow-hidden">
+            <div class="flex items-center justify-between text-slate-400 mb-2">
+                <span class="text-xs font-medium uppercase font-mono tracking-wider">Breach Matches</span>
+                <i data-lucide="database" class="w-4 h-4 text-rose-400"></i>
+            </div>
+            <div class="text-3xl font-extrabold text-white font-mono {% if total_breaches > 0 %}text-rose-400{% else %}text-emerald-400{% endif %}">
+                {{ total_breaches }}
+            </div>
+            <p class="text-[11px] text-slate-500 mt-1">Verified exposures on XposedOrNot</p>
+        </div>
+
+        <!-- General Risk Score -->
+        <div class="glass-panel p-5 rounded-2xl relative overflow-hidden">
+            <div class="flex items-center justify-between text-slate-400 mb-2">
+                <span class="text-xs font-medium uppercase font-mono tracking-wider">Latest Risk Index</span>
+                <i data-lucide="shield-alert" class="w-4 h-4 text-emerald-400"></i>
+            </div>
+            <div class="text-3xl font-extrabold text-gradient-cyber font-mono">
+                {% if general_score is not none %}{{ general_score }}/100{% else %}—{% endif %}
+            </div>
+            <p class="text-[11px] text-slate-500 mt-1">
+                {% if general_score is not none %}
+                    {% if general_score <= 25 %}Low Risk Posture
+                    {% elif general_score <= 50 %}Moderate Risk Posture
+                    {% elif general_score <= 75 %}High Exposure Posture
+                    {% else %}Critical Vulnerability Posture{% endif %}
+                {% else %}No assessments yet{% endif %}
+            </p>
+        </div>
+
+        <!-- Hardening Action Progress -->
+        <div class="glass-panel p-5 rounded-2xl relative overflow-hidden">
+            <div class="flex items-center justify-between text-slate-400 mb-2">
+                <span class="text-xs font-medium uppercase font-mono tracking-wider">Hardening Tasks</span>
+                <i data-lucide="check-circle" class="w-4 h-4 text-mint-400"></i>
+            </div>
+            <div class="text-3xl font-extrabold text-white font-mono">{{ completed_recs }} / {{ total_recs }}</div>
+            <p class="text-[11px] text-slate-500 mt-1">
+                <a href="{{ url_for('action_center.index') }}" class="text-emerald-400 hover:underline">View in Action Center →</a>
+            </p>
+        </div>
+    </div>
+
+    {% if not has_data %}
+        <!-- Empty State Notice -->
+        <div class="glass-panel p-10 rounded-3xl text-center space-y-4 max-w-2xl mx-auto">
+            <div class="w-16 h-16 rounded-2xl bg-[#07150d] border border-[#143321] flex items-center justify-center mx-auto text-emerald-400 shadow-md">
+                <i data-lucide="scan" class="w-8 h-8"></i>
+            </div>
+            <h3 class="text-xl font-bold text-white">No Threat Intelligence Scans Yet</h3>
+            <p class="text-xs text-slate-400 leading-relaxed max-w-md mx-auto">
+                Your cybersecurity telemetry dashboard compiles live analytics as you run assessments. Run your first email breach scan or privacy questionnaire to visualize your risk curves.
+            </p>
+            <div class="flex flex-wrap items-center justify-center gap-3 pt-2">
+                <a href="{{ url_for('assessment.mode_a') }}" class="btn-cyber-primary px-5 py-2.5 rounded-xl text-xs font-semibold">
+                    Launch Mode A Email Scan
+                </a>
+                <a href="{{ url_for('assessment.mode_b') }}" class="btn-cyber-secondary px-5 py-2.5 rounded-xl text-xs font-semibold">
+                    Launch Mode B Privacy Quiz
+                </a>
+            </div>
+        </div>
+    {% else %}
+
+        <!-- Row 1: Risk Distribution Pie & Email Breach Bar -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            
+            <!-- Chart 1: Digital Risk Pie Chart -->
+            <div class="glass-panel p-6 sm:p-8 rounded-3xl space-y-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-base font-bold text-white flex items-center gap-2">
+                            <i data-lucide="pie-chart" class="w-4 h-4 text-emerald-400"></i>
+                            <span>Digital Risk Distribution</span>
+                        </h3>
+                        <p class="text-[11px] text-slate-400">Severity ratings across all personal evaluations.</p>
+                    </div>
+                </div>
+                <div class="h-64 relative">
+                    <canvas id="riskPieChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Chart 2: Email Breach Bar Chart -->
+            <div class="glass-panel p-6 sm:p-8 rounded-3xl space-y-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-base font-bold text-white flex items-center gap-2">
+                            <i data-lucide="bar-chart-3" class="w-4 h-4 text-mint-400"></i>
+                            <span>Breach Frequency by Assessment</span>
+                        </h3>
+                        <p class="text-[11px] text-slate-400">Compromised credential records discovered.</p>
+                    </div>
+                </div>
+                <div class="h-64 relative">
+                    <canvas id="breachBarChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Row 2: Security Assessment Radar & Privacy Progress Doughnut -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            <!-- Chart 3: Security Assessment Radar Chart (2 Cols) -->
+            <div class="lg:col-span-2 glass-panel p-6 sm:p-8 rounded-3xl space-y-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-base font-bold text-white flex items-center gap-2">
+                            <i data-lucide="shield" class="w-4 h-4 text-emerald-400"></i>
+                            <span>6-Dimensional Security Posture Radar</span>
+                        </h3>
+                        <p class="text-[11px] text-slate-400">0 = Hardened & Secure; 100 = Highly Vulnerable</p>
+                    </div>
+                </div>
+                <div class="h-72 relative">
+                    <canvas id="securityRadarChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Chart 4: Privacy Improvement Progress Doughnut (1 Col) -->
+            <div class="glass-panel p-6 sm:p-8 rounded-3xl space-y-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-base font-bold text-white flex items-center gap-2">
+                            <i data-lucide="check-circle-2" class="w-4 h-4 text-mint-400"></i>
+                            <span>Action Hardening Progress</span>
+                        </h3>
+                        <p class="text-[11px] text-slate-400">Remediation checklist completion.</p>
+                    </div>
+                </div>
+                <div class="h-72 relative">
+                    <canvas id="progressChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Row 3: Assessment History Trend Chart -->
+        <div class="glass-panel p-6 sm:p-8 rounded-3xl space-y-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-base font-bold text-white flex items-center gap-2">
+                        <i data-lucide="trending-up" class="w-4 h-4 text-emerald-400"></i>
+                        <span>Assessment Risk Score Progression Over Time</span>
+                    </h3>
+                    <p class="text-[11px] text-slate-400">Historical trend across all conducted scans.</p>
+                </div>
+            </div>
+            <div class="h-64 relative">
+                <canvas id="historyTrendChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Recent Activity Table -->
+        <div class="glass-panel p-6 sm:p-8 rounded-3xl space-y-4">
+            <div class="flex items-center justify-between">
+                <h3 class="text-base font-bold text-white">Recent Assessment Audits</h3>
+                <a href="{{ url_for('assessment.history') }}" class="text-xs text-emerald-400 hover:underline">Full History →</a>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                    <thead>
+                        <tr class="border-b border-[#143321] text-slate-400">
+                            <th class="py-2.5 px-3">Type</th>
+                            <th class="py-2.5 px-3">Target</th>
+                            <th class="py-2.5 px-3">Date</th>
+                            <th class="py-2.5 px-3">Score</th>
+                            <th class="py-2.5 px-3 text-right">Details</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-[#143321]/60">
+                        {% for s in email_scans %}
+                            <tr class="hover:bg-[#0d2216]/40 transition-colors">
+                                <td class="py-3 px-3"><span class="px-2 py-0.5 rounded bg-[#0d2216] text-mint-300 border border-[#1e4a30] font-mono text-[10px]">MODE A</span></td>
+                                <td class="py-3 px-3 font-semibold text-white">{{ s.email }}</td>
+                                <td class="py-3 px-3 text-slate-400 font-mono">{{ s.created_at.strftime("%b %d, %H:%M") }}</td>
+                                <td class="py-3 px-3 font-mono font-bold {% if s.risk_score > 50 %}text-rose-400{% else %}text-emerald-400{% endif %}">{{ s.risk_score }}/100</td>
+                                <td class="py-3 px-3 text-right">
+                                    <a href="{{ url_for('assessment.detail', assessment_id=s.id) }}" class="text-emerald-400 hover:text-emerald-300 hover:underline">Inspect →</a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        {% for q in quiz_scans %}
+                            <tr class="hover:bg-[#0d2216]/40 transition-colors">
+                                <td class="py-3 px-3"><span class="px-2 py-0.5 rounded bg-[#07150d] text-sage-300 border border-[#143321] font-mono text-[10px]">MODE B</span></td>
+                                <td class="py-3 px-3 font-semibold text-white">General Privacy Quiz</td>
+                                <td class="py-3 px-3 text-slate-400 font-mono">{{ q.created_at.strftime("%b %d, %H:%M") }}</td>
+                                <td class="py-3 px-3 font-mono font-bold {% if q.overall_score > 50 %}text-rose-400{% else %}text-emerald-400{% endif %}">{{ q.overall_score }}/100</td>
+                                <td class="py-3 px-3 text-right">
+                                    <a href="{{ url_for('assessment.quiz_detail', assessment_id=q.id) }}" class="text-emerald-400 hover:text-emerald-300 hover:underline">Inspect →</a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    {% endif %}
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const chartData = {{ chart_data|tojson }};
+        initDashboardCharts(chartData);
+    });
+</script>
+{% endblock %}

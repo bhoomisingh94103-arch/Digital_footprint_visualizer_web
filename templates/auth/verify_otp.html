@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}Verify Security OTP — Digital Footprint Intelligence{% endblock %}
+
+{% block content %}
+<div class="min-h-[75vh] flex items-center justify-center px-4 py-12">
+    <div class="max-w-md w-full glass-panel p-8 rounded-2xl relative border border-forest-700/60 shadow-[0_20px_50px_rgba(0,0,0,0.6)]">
+        <div class="text-center mb-6">
+            <div class="w-12 h-12 rounded-xl bg-forest-900/60 border border-emerald-500/30 flex items-center justify-center mx-auto mb-3 shadow-lg shadow-emerald-950/40">
+                <i data-lucide="key-round" class="w-6 h-6 text-mint-400"></i>
+            </div>
+            <h2 class="text-2xl font-extrabold text-white">Security Verification</h2>
+            <p class="text-xs text-slate-400 mt-1">
+                Enter the 6-digit OTP code dispatched for <span class="text-mint-400 font-semibold">{{ email }}</span>.
+            </p>
+        </div>
+
+        <form method="POST" action="{{ url_for('auth.verify_otp') }}" class="space-y-4">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+            <div>
+                <label for="otp_code" class="block text-xs font-medium text-slate-300 mb-1.5 text-center">6-Digit One-Time Passcode</label>
+                <input type="text" id="otp_code" name="otp_code" required maxlength="8" autofocus
+                       placeholder="••••••"
+                       class="w-full text-center tracking-[0.5em] font-mono text-2xl font-bold py-3 px-4 rounded-xl bg-forest-950 border border-forest-700 text-mint-400 focus:outline-none focus:border-emerald-400 transition-colors">
+            </div>
+
+            <div class="text-[11px] text-slate-500 text-center flex items-center justify-center gap-1">
+                <i data-lucide="clock" class="w-3.5 h-3.5 text-emerald-400/70"></i>
+                <span>Expires in 10 minutes • 5 maximum attempts</span>
+            </div>
+
+            <button type="submit" class="w-full btn-cyber-primary py-3 rounded-xl font-semibold text-sm shadow-lg">
+                Verify Code & Authenticate
+            </button>
+        </form>
+
+        <form method="POST" action="{{ url_for('auth.resend_otp') }}" class="mt-4 text-center">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <button type="submit" class="text-xs text-slate-400 hover:text-mint-300 transition-colors">
+                Didn't receive the code? <span class="text-emerald-400 underline font-semibold">Resend OTP</span>
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

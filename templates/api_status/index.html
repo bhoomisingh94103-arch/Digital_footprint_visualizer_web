@@ -1,0 +1,290 @@
+{% extends "base.html" %}
+
+{% block title %}API Management Center — Digital Footprint Intelligence{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10">
+    
+    <!-- Header -->
+    <div>
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#0d2216] border border-emerald-800 text-mint-300 text-xs font-mono font-semibold mb-3">
+            <i data-lucide="activity" class="w-3.5 h-3.5"></i> INTEGRATION DIAGNOSTICS
+        </div>
+        <h1 class="text-3xl font-extrabold text-white">API Management Center</h1>
+        <p class="text-xs text-slate-400 mt-1">
+            Real-time status, credentials configuration, and latency metrics across external threat intelligence providers.
+        </p>
+    </div>
+
+    <!-- APIs Health & Ping Table -->
+    <div class="glass-panel p-6 sm:p-8 rounded-3xl space-y-6">
+        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+            <i data-lucide="server" class="w-5 h-5 text-emerald-400"></i>
+            <span>Connected Threat Intelligence Services</span>
+        </h3>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+                <thead>
+                    <tr class="border-b border-[#143321] text-slate-400 font-mono uppercase">
+                        <th class="py-3 px-3">Service</th>
+                        <th class="py-3 px-3">Primary Purpose</th>
+                        <th class="py-3 px-3">Auth / Config</th>
+                        <th class="py-3 px-3">Last Activity</th>
+                        <th class="py-3 px-3 text-right">Diagnostic Probe</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-[#143321]/60">
+                    
+                    <!-- 1. XposedOrNot -->
+                    <tr class="hover:bg-[#0d2216]/40 transition-colors">
+                        <td class="py-4 px-3">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-2.5 h-2.5 rounded-full bg-emerald-400"></div>
+                                <span class="font-bold text-white text-sm">XposedOrNot</span>
+                            </div>
+                        </td>
+                        <td class="py-4 px-3 text-slate-300">Email breach detection & analytics</td>
+                        <td class="py-4 px-3">
+                            <span class="px-2 py-0.5 rounded bg-emerald-950/70 text-emerald-300 border border-emerald-800 font-mono text-[10px]">
+                                Public API / Live
+                            </span>
+                        </td>
+                        <td class="py-4 px-3 text-slate-400 font-mono">
+                            {{ latest_logs['XposedOrNot'].timestamp.strftime("%H:%M:%S UTC") if latest_logs['XposedOrNot'] else 'Ready' }}
+                        </td>
+                        <td class="py-4 px-3 text-right">
+                            <button onclick="pingService('xposedornot', this)" class="btn-cyber-secondary px-3 py-1.5 rounded-xl text-xs font-semibold">
+                                Test Ping
+                            </button>
+                        </td>
+                    </tr>
+
+                    <!-- 2. HackMyIP -->
+                    <tr class="hover:bg-[#0d2216]/40 transition-colors">
+                        <td class="py-4 px-3">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-2.5 h-2.5 rounded-full bg-emerald-400"></div>
+                                <span class="font-bold text-white text-sm">HackMyIP</span>
+                            </div>
+                        </td>
+                        <td class="py-4 px-3 text-slate-300">Visitor network privacy & proxy analysis</td>
+                        <td class="py-4 px-3">
+                            <span class="px-2 py-0.5 rounded bg-emerald-950/70 text-emerald-300 border border-emerald-800 font-mono text-[10px]">
+                                Public JSON / Live
+                            </span>
+                        </td>
+                        <td class="py-4 px-3 text-slate-400 font-mono">
+                            {{ latest_logs['HackMyIP'].timestamp.strftime("%H:%M:%S UTC") if latest_logs['HackMyIP'] else 'Ready' }}
+                        </td>
+                        <td class="py-4 px-3 text-right">
+                            <button onclick="pingService('hackmyip', this)" class="btn-cyber-secondary px-3 py-1.5 rounded-xl text-xs font-semibold">
+                                Test Ping
+                            </button>
+                        </td>
+                    </tr>
+
+                    <!-- 3. EmailRep -->
+                    <tr class="hover:bg-[#0d2216]/40 transition-colors">
+                        <td class="py-4 px-3">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-2.5 h-2.5 rounded-full {% if emailrep_configured %}bg-emerald-400{% else %}bg-amber-400{% endif %}"></div>
+                                <span class="font-bold text-white text-sm">EmailRep.io</span>
+                            </div>
+                        </td>
+                        <td class="py-4 px-3 text-slate-300">Email reputation & disposable detection</td>
+                        <td class="py-4 px-3">
+                            {% if emailrep_configured %}
+                                <span class="px-2 py-0.5 rounded bg-emerald-950/70 text-emerald-300 border border-emerald-800 font-mono text-[10px]">Configured (.env)</span>
+                            {% else %}
+                                <span class="px-2 py-0.5 rounded bg-amber-950/60 text-amber-300 border border-amber-800 font-mono text-[10px]">Not Configured (Optional)</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-4 px-3 text-slate-400 font-mono">
+                            {{ latest_logs['EmailRep'].timestamp.strftime("%H:%M:%S UTC") if latest_logs['EmailRep'] else 'Idle' }}
+                        </td>
+                        <td class="py-4 px-3 text-right">
+                            <button onclick="pingService('emailrep', this)" class="btn-cyber-secondary px-3 py-1.5 rounded-xl text-xs font-semibold">
+                                Test Ping
+                            </button>
+                        </td>
+                    </tr>
+
+                    <!-- 4. Have I Been Pwned -->
+                    <tr class="hover:bg-[#0d2216]/40 transition-colors">
+                        <td class="py-4 px-3">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-2.5 h-2.5 rounded-full {% if hibp_configured %}bg-emerald-400{% else %}bg-slate-500{% endif %}"></div>
+                                <span class="font-bold text-white text-sm">Have I Been Pwned</span>
+                            </div>
+                        </td>
+                        <td class="py-4 px-3 text-slate-300">Secondary breach verification</td>
+                        <td class="py-4 px-3">
+                            {% if hibp_configured %}
+                                <span class="px-2 py-0.5 rounded bg-emerald-950/70 text-emerald-300 border border-emerald-800 font-mono text-[10px]">API Key Active</span>
+                            {% else %}
+                                <span class="px-2 py-0.5 rounded bg-[#0d2216] text-slate-400 border border-[#143321] font-mono text-[10px]">Not Configured (Optional)</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-4 px-3 text-slate-400 font-mono">
+                            {{ latest_logs['HIBP'].timestamp.strftime("%H:%M:%S UTC") if latest_logs['HIBP'] else 'Idle' }}
+                        </td>
+                        <td class="py-4 px-3 text-right">
+                            <button onclick="pingService('hibp', this)" class="btn-cyber-secondary px-3 py-1.5 rounded-xl text-xs font-semibold">
+                                Test Ping
+                            </button>
+                        </td>
+                    </tr>
+
+                    <!-- 5. SMTP Service -->
+                    <tr class="hover:bg-[#0d2216]/40 transition-colors">
+                        <td class="py-4 px-3">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-2.5 h-2.5 rounded-full {% if smtp_configured %}bg-emerald-400{% else %}bg-amber-400{% endif %}"></div>
+                                <span class="font-bold text-white text-sm">SMTP Mail Server</span>
+                            </div>
+                        </td>
+                        <td class="py-4 px-3 text-slate-300">OTP generation & verification delivery</td>
+                        <td class="py-4 px-3">
+                            {% if smtp_configured %}
+                                <span class="px-2 py-0.5 rounded bg-emerald-950/70 text-emerald-300 border border-emerald-800 font-mono text-[10px]">SMTP Server Configured</span>
+                            {% else %}
+                                <span class="px-2 py-0.5 rounded bg-amber-950/60 text-amber-300 border border-amber-800 font-mono text-[10px]">Simulated / Dev Console</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-4 px-3 text-slate-400 font-mono">
+                            {{ latest_logs['SMTP'].timestamp.strftime("%H:%M:%S UTC") if latest_logs['SMTP'] else 'Ready' }}
+                        </td>
+                        <td class="py-4 px-3 text-right">
+                            <button onclick="pingService('smtp', this)" class="btn-cyber-secondary px-3 py-1.5 rounded-xl text-xs font-semibold">
+                                Test Ping
+                            </button>
+                        </td>
+                    </tr>
+
+                    <!-- 6. LLM Assistant API -->
+                    <tr class="hover:bg-[#0d2216]/40 transition-colors">
+                        <td class="py-4 px-3">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-2.5 h-2.5 rounded-full {% if gemini_configured or openai_configured %}bg-emerald-400{% else %}bg-mint-400{% endif %}"></div>
+                                <span class="font-bold text-white text-sm">AI Privacy Guardian</span>
+                            </div>
+                        </td>
+                        <td class="py-4 px-3 text-slate-300">Interactive cybersecurity chat guidance</td>
+                        <td class="py-4 px-3">
+                            {% if gemini_configured %}
+                                <span class="px-2 py-0.5 rounded bg-emerald-950/70 text-emerald-300 border border-emerald-800 font-mono text-[10px]">Gemini API Active</span>
+                            {% elif openai_configured %}
+                                <span class="px-2 py-0.5 rounded bg-emerald-950/70 text-emerald-300 border border-emerald-800 font-mono text-[10px]">OpenAI API Active</span>
+                            {% else %}
+                                <span class="px-2 py-0.5 rounded bg-[#0d2216] text-mint-300 border border-emerald-800/60 font-mono text-[10px]">Expert Engine Active</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-4 px-3 text-slate-400 font-mono">
+                            {{ latest_logs['LLM'].timestamp.strftime("%H:%M:%S UTC") if latest_logs['LLM'] else 'Ready' }}
+                        </td>
+                        <td class="py-4 px-3 text-right">
+                            <button onclick="pingService('llm', this)" class="btn-cyber-secondary px-3 py-1.5 rounded-xl text-xs font-semibold">
+                                Test Ping
+                            </button>
+                        </td>
+                    </tr>
+
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Diagnostic Ping Output Box -->
+    <div id="ping-result-box" class="hidden glass-panel p-6 rounded-3xl border border-emerald-500/30 space-y-2 text-xs">
+        <div class="flex items-center justify-between">
+            <span class="font-bold text-white font-mono" id="ping-service-name">Service</span>
+            <span id="ping-status-badge" class="px-2 py-0.5 rounded font-mono font-semibold">Status</span>
+        </div>
+        <p class="text-slate-300 font-mono" id="ping-message"></p>
+        <div class="text-[11px] text-slate-500 font-mono">
+            Latency: <span id="ping-latency" class="text-mint-400 font-bold">0ms</span> • Code: <span id="ping-code" class="text-white">200</span>
+        </div>
+    </div>
+
+    <!-- Recent Transactions Activity Log Table -->
+    <div class="glass-panel p-6 sm:p-8 rounded-3xl space-y-4">
+        <h3 class="text-base font-bold text-white flex items-center gap-2">
+            <i data-lucide="list" class="w-4 h-4 text-emerald-400"></i>
+            <span>Recent API Activity & Health Logs</span>
+        </h3>
+        
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+                <thead>
+                    <tr class="border-b border-[#143321] text-slate-400 font-mono">
+                        <th class="py-2.5 px-3">Service</th>
+                        <th class="py-2.5 px-3">Endpoint</th>
+                        <th class="py-2.5 px-3">Status</th>
+                        <th class="py-2.5 px-3">Latency</th>
+                        <th class="py-2.5 px-3">Timestamp</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-[#143321]/60 font-mono">
+                    {% for log in recent_transactions %}
+                        <tr class="hover:bg-[#0d2216]/30 transition-colors">
+                            <td class="py-2.5 px-3 font-semibold text-white">{{ log.api_name }}</td>
+                            <td class="py-2.5 px-3 text-slate-400 truncate max-w-[200px]">{{ log.endpoint }}</td>
+                            <td class="py-2.5 px-3">
+                                <span class="px-2 py-0.5 rounded {% if log.success %}bg-emerald-950 text-emerald-300 border border-emerald-800{% else %}bg-rose-950 text-rose-300 border border-rose-800{% endif %}">
+                                    {{ log.status_code or 'ERR' }}
+                                </span>
+                            </td>
+                            <td class="py-2.5 px-3 text-slate-400">{{ log.response_time_ms or 0 }}ms</td>
+                            <td class="py-2.5 px-3 text-slate-500">{{ log.timestamp.strftime("%Y-%m-%d %H:%M:%S") }}</td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="5" class="py-6 text-center text-slate-500 italic">No external API requests logged yet.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    async function pingService(serviceName, btn) {
+        btn.disabled = true;
+        btn.textContent = 'Pinging...';
+        
+        const box = document.getElementById('ping-result-box');
+        
+        try {
+            const res = await fetch(`/api-status/ping/${serviceName}`, { method: 'POST' });
+            const data = await res.json();
+            
+            box.classList.remove('hidden');
+            document.getElementById('ping-service-name').textContent = data.service;
+            document.getElementById('ping-message').textContent = data.message;
+            document.getElementById('ping-latency').textContent = `${data.latency_ms}ms`;
+            document.getElementById('ping-code').textContent = data.code;
+            
+            const badge = document.getElementById('ping-status-badge');
+            badge.textContent = data.status;
+            badge.className = `px-2 py-0.5 rounded font-mono font-semibold ${
+                data.code === 200 || data.code === 250 ? 'bg-emerald-950 text-emerald-300 border border-emerald-700' :
+                data.code === 400 ? 'bg-amber-950 text-amber-300 border border-amber-700' :
+                'bg-rose-950 text-rose-300 border border-rose-700'
+            }`;
+            
+            box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            showToast(`${data.service}: ${data.status} (${data.latency_ms}ms)`, data.code === 200 || data.code === 250 ? 'success' : 'info');
+        } catch (err) {
+            showToast(`Failed to ping ${serviceName}`, 'danger');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Test Ping';
+        }
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}Questionnaire Assessment Detail #{{ assessment.id }} — Digital Footprint Intelligence{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+    
+    <div class="flex items-center justify-between">
+        <a href="{{ url_for('assessment.history') }}" class="text-xs text-slate-400 hover:text-white flex items-center gap-1.5 transition-colors">
+            <i data-lucide="arrow-left" class="w-4 h-4"></i> Back to Scan History
+        </a>
+        <a href="{{ url_for('assessment.download_pdf', assessment_id=assessment.id, quiz=1) }}" class="btn-cyber-primary px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2">
+            <i data-lucide="download" class="w-4 h-4"></i> Download PDF Report
+        </a>
+    </div>
+
+    <!-- Overview Card -->
+    <div class="glass-panel p-8 rounded-3xl relative overflow-hidden">
+        <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+            <div>
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="px-3 py-1 rounded-full text-xs font-semibold border 
+                        {% if assessment.overall_score > 75 %}risk-badge-critical
+                        {% elif assessment.overall_score > 50 %}risk-badge-high
+                        {% elif assessment.overall_score > 25 %}risk-badge-moderate
+                        {% else %}risk-badge-low{% endif %}">
+                        {{ assessment.risk_level }}
+                    </span>
+                    <span class="text-xs text-slate-400 font-mono">{{ assessment.created_at.strftime("%Y-%m-%d %H:%M:%S UTC") }}</span>
+                </div>
+                <h1 class="text-2xl sm:text-3xl font-extrabold text-white">Digital Privacy Assessment Result</h1>
+                <p class="text-xs text-slate-400 mt-1 font-mono">Audit Reference: DFI-QUIZ-{{ assessment.id }}</p>
+            </div>
+
+            <div class="text-center p-5 rounded-2xl bg-[#05110a] border border-[#143321]">
+                <div class="text-4xl font-extrabold text-gradient-cyber font-mono">{{ assessment.overall_score }}</div>
+                <div class="text-[10px] uppercase font-mono tracking-wider text-slate-400 mt-1">Calculated Risk (0-100)</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Category Scores Breakdown -->
+    <div class="glass-panel p-6 sm:p-8 rounded-3xl space-y-4">
+        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+            <i data-lucide="bar-chart-2" class="w-5 h-5 text-emerald-400"></i>
+            <span>Evaluated Threat Categories</span>
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {% for cat, score in category_scores.items() %}
+                <div class="p-4 rounded-2xl bg-[#07150d] border border-[#143321] space-y-2">
+                    <div class="flex justify-between text-xs font-semibold">
+                        <span class="text-slate-300">{{ cat }}</span>
+                        <span class="text-mint-300 font-mono">{{ score }}/100</span>
+                    </div>
+                    <div class="w-full h-2 rounded-full bg-[#030805] overflow-hidden">
+                        <div class="h-full rounded-full {% if score > 75 %}bg-rose-500{% elif score > 50 %}bg-amber-500{% elif score > 25 %}bg-emerald-600{% else %}bg-emerald-400{% endif %}"
+                             style="width: {{ score }}%"></div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Recommendations -->
+    <div class="glass-panel p-6 sm:p-8 rounded-3xl space-y-4">
+        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+            <i data-lucide="shield-check" class="w-5 h-5 text-emerald-400"></i>
+            <span>Hardening Recommendations</span>
+        </h3>
+        <div class="space-y-3">
+            {% for r in recommendations %}
+                <div class="p-4 rounded-xl bg-[#07150d]/80 border border-[#143321] flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                    <div class="space-y-1">
+                        <div class="flex items-center gap-2">
+                            <span class="px-2 py-0.5 rounded text-xs font-semibold border 
+                                {% if r.priority == 'Critical' %}border-rose-700 text-rose-300 bg-rose-950/40
+                                {% elif r.priority == 'High' %}border-amber-700 text-amber-300 bg-amber-950/40
+                                {% else %}border-emerald-700 text-mint-300 bg-emerald-950/40{% endif %}">
+                                {{ r.priority }}
+                            </span>
+                            <span class="text-xs text-slate-400 font-mono">{{ r.category }}</span>
+                        </div>
+                        <h5 class="text-sm font-bold text-white">{{ r.title }}</h5>
+                        <p class="text-xs text-slate-300">{{ r.reason }}</p>
+                    </div>
+                    {% if r.external_url %}
+                        <a href="{{ r.external_url }}" target="_blank" rel="noopener" class="text-xs text-emerald-400 hover:text-emerald-300 hover:underline">
+                            Resource Link →
+                        </a>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

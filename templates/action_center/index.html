@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}Privacy Action Center — Digital Footprint Intelligence{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10">
+    
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+        <div>
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#0d2216] border border-emerald-800 text-mint-300 text-xs font-mono font-semibold mb-3">
+                <i data-lucide="shield-check" class="w-3.5 h-3.5"></i> SECURITY HARDENING CENTER
+            </div>
+            <h1 class="text-3xl font-extrabold text-white">Privacy Action Center</h1>
+            <p class="text-xs text-slate-400 mt-1">
+                Interactive security guides and checklists to systematically eliminate your digital footprint vulnerabilities.
+            </p>
+        </div>
+
+        <!-- Overall Progress Meter -->
+        <div class="glass-panel p-5 rounded-2xl min-w-[260px]">
+            <div class="flex items-center justify-between text-xs font-semibold mb-2">
+                <span class="text-slate-300">Hardening Progress</span>
+                <span id="action-progress-pct" class="text-mint-400 font-mono font-bold">{{ progress_pct }}%</span>
+            </div>
+            <div class="w-full h-2.5 rounded-full bg-[#030805] border border-[#143321] overflow-hidden">
+                <div id="action-progress-fill" class="h-full bg-gradient-to-r from-emerald-500 via-mint-400 to-emerald-500 transition-all duration-300" style="width: {{ progress_pct }}%"></div>
+            </div>
+            <p class="text-[11px] text-slate-500 mt-2">
+                <span id="completed-count-text" class="text-white font-mono">{{ completed_count }}</span> of {{ total_tasks }} security tasks completed
+            </p>
+        </div>
+    </div>
+
+    <!-- 8 Interactive Guides Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {% for guide in guides %}
+            <div class="glass-panel p-6 sm:p-7 rounded-3xl space-y-4 hover:border-emerald-500/40 transition-all">
+                <div class="flex items-center justify-between">
+                    <div class="w-10 h-10 rounded-xl bg-[#0d2216] border border-emerald-800 flex items-center justify-center text-mint-400 shadow-md">
+                        <i data-lucide="{{ guide.icon }}" class="w-5 h-5"></i>
+                    </div>
+                    <span class="px-2.5 py-0.5 rounded-md text-[10px] font-mono font-semibold uppercase bg-[#07150d] text-mint-300 border border-[#143321]">
+                        {{ guide.badge }}
+                    </span>
+                </div>
+
+                <div>
+                    <h3 class="text-lg font-bold text-white">{{ guide.title }}</h3>
+                    <p class="text-xs text-slate-400 mt-1 leading-relaxed">{{ guide.description }}</p>
+                </div>
+
+                <!-- Checklist -->
+                <div class="pt-3 border-t border-[#143321] space-y-2.5">
+                    <span class="text-[11px] font-mono text-slate-400 uppercase tracking-wider block font-semibold">Action Checklist:</span>
+                    {% for task in guide.tasks %}
+                        <label class="flex items-start gap-3 p-2.5 rounded-xl bg-[#05110a] border border-[#143321] hover:bg-[#0d2216] cursor-pointer transition-colors text-xs text-slate-300">
+                            <input type="checkbox"
+                                   class="action-checklist-checkbox w-4 h-4 mt-0.5 rounded bg-[#030805] border-[#143321] text-emerald-600 focus:ring-0 cursor-pointer"
+                                   data-guide-id="{{ guide.id }}"
+                                   data-task-id="{{ task.id }}"
+                                   {% if task.id in completed_tasks %}checked{% endif %}>
+                            <span class="leading-snug select-none">{{ task.label }}</span>
+                        </label>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/action_center.js') }}"></script>
+{% endblock %}

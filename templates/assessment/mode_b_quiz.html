@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block title %}Mode B: General Digital Privacy Assessment — Digital Footprint Intelligence{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    
+    <!-- Header -->
+    <div class="mb-10 text-center max-w-2xl mx-auto">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#0d2216] border border-emerald-800 text-mint-300 text-xs font-mono font-semibold mb-3">
+            <i data-lucide="clipboard-check" class="w-3.5 h-3.5"></i> MODE B ASSESSMENT
+        </div>
+        <h1 class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">General Digital Privacy Assessment</h1>
+        <p class="text-sm text-slate-400 mt-2">
+            Evaluate your personal security habits and digital footprint exposure without entering your email address. 15 comprehensive questions with transparent mathematical scoring.
+        </p>
+    </div>
+
+    <!-- Wizard Card -->
+    <div id="quiz-wizard-card" class="glass-panel p-6 sm:p-10 rounded-3xl relative overflow-hidden">
+        
+        <!-- Progress Bar & Counter -->
+        <div class="mb-8">
+            <div class="flex items-center justify-between text-xs font-mono text-slate-400 mb-2">
+                <span id="question-counter">Question 1 of {{ questions|length }}</span>
+                <span class="text-mint-400 font-semibold">15 Cybersecurity Dimensions</span>
+            </div>
+            <div class="w-full h-2 rounded-full bg-[#030805] border border-[#143321] overflow-hidden">
+                <div id="quiz-progress-fill" class="h-full bg-gradient-to-r from-emerald-500 via-mint-400 to-sage-400 transition-all duration-300" style="width: 7%"></div>
+            </div>
+        </div>
+
+        <!-- Wizard Questions Form -->
+        <form id="quiz-wizard-form">
+            {% for q in questions %}
+                <div class="question-card {% if not loop.first %}hidden{% endif %}" data-qid="{{ q.id }}" data-category="{{ q.category }}">
+                    
+                    <!-- Question Category Badge -->
+                    <div class="flex items-center gap-2 mb-3">
+                        <span class="px-2.5 py-1 rounded-md text-[11px] font-mono font-semibold uppercase bg-[#0d2216] text-mint-300 border border-[#1e4a30]">
+                            {{ q.category }}
+                        </span>
+                        <span class="text-xs text-slate-500 font-mono">Q{{ loop.index }}</span>
+                    </div>
+
+                    <!-- Question Prompt -->
+                    <h3 class="text-xl sm:text-2xl font-bold text-white mb-2">{{ q.title }}</h3>
+                    <p class="text-sm text-slate-300 mb-6 font-medium">{{ q.prompt }}</p>
+
+                    <!-- Why This Matters Callout -->
+                    <div class="p-3.5 rounded-2xl bg-[#05110a] border border-[#143321] mb-6 flex items-start gap-2.5 text-xs text-slate-400">
+                        <i data-lucide="info" class="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5"></i>
+                        <span><strong>Cybersecurity Context:</strong> {{ q.explanation }}</span>
+                    </div>
+
+                    <!-- Options Grid -->
+                    <div class="space-y-3">
+                        {% for opt in q.options %}
+                            <div class="quiz-option p-4 rounded-2xl bg-[#07150d]/70 border border-[#143321] hover:border-emerald-400 hover:bg-[#0d2216] cursor-pointer transition-all flex items-start gap-3.5 group"
+                                 data-index="{{ loop.index0 }}">
+                                <div class="w-5 h-5 rounded-full border border-slate-600 group-hover:border-emerald-400 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                    <div class="w-2.5 h-2.5 rounded-full bg-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                </div>
+                                <div class="flex-grow">
+                                    <p class="text-sm text-slate-200 leading-snug">{{ opt.text }}</p>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endfor %}
+
+            <!-- Wizard Navigation Buttons -->
+            <div class="flex items-center justify-between mt-10 pt-6 border-t border-[#143321]">
+                <button type="button" id="quiz-prev-btn" class="btn-cyber-secondary px-5 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 opacity-0 pointer-events-none">
+                    <i data-lucide="chevron-left" class="w-4 h-4"></i> Previous
+                </button>
+                <div class="flex items-center gap-3">
+                    <button type="button" id="quiz-next-btn" class="btn-cyber-primary px-6 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-1.5">
+                        Next Question <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                    </button>
+                    <button type="button" id="quiz-submit-btn" class="btn-cyber-primary px-6 py-2.5 rounded-xl text-xs font-semibold hidden flex items-center gap-1.5">
+                        Calculate My Risk Score <i data-lucide="zap" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Results Container (Hidden until submission) -->
+    <div id="quiz-results" class="hidden space-y-8 mt-8">
+        
+        <!-- Score Banner -->
+        <div class="glass-panel p-8 rounded-3xl relative overflow-hidden">
+            <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                <div>
+                    <div class="flex items-center gap-2 mb-2">
+                        <span id="qres-risk-level" class="px-3 py-1 rounded-full text-xs font-semibold border risk-badge-low">Moderate Risk</span>
+                        <span class="text-xs text-mint-400 font-mono">[Mode B Questionnaire]</span>
+                    </div>
+                    <h2 class="text-2xl sm:text-3xl font-extrabold text-white">Your Personal Privacy Index</h2>
+                    <p id="qres-summary" class="text-sm text-slate-300 mt-2 max-w-xl leading-relaxed"></p>
+                </div>
+
+                <div class="flex items-center gap-4">
+                    <div class="text-center p-5 rounded-2xl bg-[#05110a] border border-[#143321]">
+                        <div class="text-4xl font-extrabold text-gradient-cyber font-mono" id="qres-overall-score">0</div>
+                        <div class="text-[10px] uppercase font-mono tracking-wider text-slate-400 mt-1">Privacy Risk (0-100)</div>
+                    </div>
+                    <a id="qres-pdf-download" href="#" class="btn-cyber-secondary px-4 py-3 rounded-xl text-xs font-semibold flex items-center gap-2">
+                        <i data-lucide="download" class="w-4 h-4 text-emerald-400"></i>
+                        <span>Download PDF</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5-Category Risk Breakdown Grid -->
+        <div class="glass-panel p-6 sm:p-8 rounded-3xl space-y-4">
+            <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                <i data-lucide="bar-chart-2" class="w-5 h-5 text-emerald-400"></i>
+                <span>Category Vulnerability Breakdown</span>
+            </h3>
+            <p class="text-xs text-slate-400 mb-4">Lower score = stronger privacy posture (0 = completely secure, 100 = critically exposed).</p>
+            <div id="qres-categories" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+        </div>
+
+        <!-- Targeted Hardening Recommendations -->
+        <div class="glass-panel p-6 sm:p-8 rounded-3xl space-y-4">
+            <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                <i data-lucide="shield-check" class="w-5 h-5 text-emerald-400"></i>
+                <span>Actionable Recommendations for Identified Blind Spots</span>
+            </h3>
+            <div id="qres-recommendations" class="space-y-3"></div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/questionnaire.js') }}"></script>
+{% endblock %}

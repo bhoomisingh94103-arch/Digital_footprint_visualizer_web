@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% block title %}Assessment History — Digital Footprint Intelligence{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10">
+    
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+            <h1 class="text-3xl font-extrabold text-white">Assessment History</h1>
+            <p class="text-xs text-slate-400 mt-1">Review past scans, export ReportLab audit PDFs, and manage your data.</p>
+        </div>
+        {% if email_scans or quiz_scans %}
+            <form method="POST" action="{{ url_for('assessment.clear_history') }}" onsubmit="return confirm('Are you sure you want to permanently clear all assessment records?');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <button type="submit" class="px-4 py-2 rounded-xl bg-[#07150d] border border-rose-900/60 text-rose-400 hover:bg-rose-950/60 text-xs font-semibold flex items-center gap-1.5 transition-colors">
+                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Clear All History
+                </button>
+            </form>
+        {% endif %}
+    </div>
+
+    <!-- Section 1: Mode A Email Scans -->
+    <div class="glass-panel p-6 sm:p-8 rounded-3xl space-y-4">
+        <div class="flex items-center justify-between">
+            <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                <i data-lucide="mail-search" class="w-5 h-5 text-emerald-400"></i>
+                <span>Email Assessments (Mode A)</span>
+            </h3>
+            <span class="text-xs text-mint-400 font-mono">{{ email_scans|length }} Scan(s)</span>
+        </div>
+
+        {% if email_scans %}
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                    <thead>
+                        <tr class="border-b border-[#143321] text-slate-400 font-mono">
+                            <th class="py-3 px-3">Target Email</th>
+                            <th class="py-3 px-3">Date</th>
+                            <th class="py-3 px-3">Breaches</th>
+                            <th class="py-3 px-3">Risk Rating</th>
+                            <th class="py-3 px-3 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-[#143321]/60">
+                        {% for s in email_scans %}
+                            <tr class="hover:bg-[#0d2216]/40 transition-colors">
+                                <td class="py-3 px-3 font-semibold text-white">{{ s.email }}</td>
+                                <td class="py-3 px-3 text-slate-400 font-mono">{{ s.created_at.strftime("%b %d, %Y %H:%M") }}</td>
+                                <td class="py-3 px-3 font-mono">
+                                    <span class="px-2 py-0.5 rounded {% if s.breach_count > 0 %}bg-rose-950 text-rose-300 border border-rose-800{% else %}bg-emerald-950 text-emerald-300 border border-emerald-800{% endif %}">
+                                        {{ s.breach_count }} found
+                                    </span>
+                                </td>
+                                <td class="py-3 px-3">
+                                    <span class="px-2 py-0.5 rounded font-semibold 
+                                        {% if s.risk_score > 75 %}text-rose-400
+                                        {% elif s.risk_score > 50 %}text-amber-400
+                                        {% elif s.risk_score > 25 %}text-emerald-500
+                                        {% else %}text-emerald-400{% endif %}">
+                                        {{ s.risk_level }} ({{ s.risk_score }}/100)
+                                    </span>
+                                </td>
+                                <td class="py-3 px-3 text-right space-x-2">
+                                    <a href="{{ url_for('assessment.detail', assessment_id=s.id) }}" class="text-emerald-400 hover:text-emerald-300 hover:underline">
+                                        View Details
+                                    </a>
+                                    <a href="{{ url_for('assessment.download_pdf', assessment_id=s.id) }}" class="text-slate-400 hover:text-white" title="Download PDF">
+                                        PDF
+                                    </a>
+                                    <form method="POST" action="{{ url_for('assessment.delete_assessment', assessment_id=s.id) }}" class="inline" onsubmit="return confirm('Delete this scan record?');">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                        <button type="submit" class="text-rose-400 hover:text-rose-300 ml-1 font-bold">✕</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="py-8 text-center text-slate-500 text-xs">
+                <i data-lucide="inbox" class="w-8 h-8 text-slate-600 mx-auto mb-2"></i>
+                <p>No email assessments conducted yet.</p>
+                <a href="{{ url_for('assessment.mode_a') }}" class="text-emerald-400 hover:underline mt-1 inline-block">Run your first email scan →</a>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Section 2: Mode B Privacy Quiz Scans -->
+    <div class="glass-panel p-6 sm:p-8 rounded-3xl space-y-4">
+        <div class="flex items-center justify-between">
+            <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                <i data-lucide="clipboard-check" class="w-5 h-5 text-mint-400"></i>
+                <span>Privacy Questionnaires (Mode B)</span>
+            </h3>
+            <span class="text-xs text-mint-400 font-mono">{{ quiz_scans|length }} Audit(s)</span>
+        </div>
+
+        {% if quiz_scans %}
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                    <thead>
+                        <tr class="border-b border-[#143321] text-slate-400 font-mono">
+                            <th class="py-3 px-3">Audit Reference</th>
+                            <th class="py-3 px-3">Date</th>
+                            <th class="py-3 px-3">Calculated Score</th>
+                            <th class="py-3 px-3">Posture Rating</th>
+                            <th class="py-3 px-3 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-[#143321]/60">
+                        {% for q in quiz_scans %}
+                            <tr class="hover:bg-[#0d2216]/40 transition-colors">
+                                <td class="py-3 px-3 font-semibold text-white">DFI-QUIZ-{{ q.id }}</td>
+                                <td class="py-3 px-3 text-slate-400 font-mono">{{ q.created_at.strftime("%b %d, %Y %H:%M") }}</td>
+                                <td class="py-3 px-3 font-mono font-bold text-mint-300">{{ q.overall_score }}/100</td>
+                                <td class="py-3 px-3">
+                                    <span class="px-2 py-0.5 rounded font-semibold 
+                                        {% if q.overall_score > 75 %}text-rose-400
+                                        {% elif q.overall_score > 50 %}text-amber-400
+                                        {% elif q.overall_score > 25 %}text-emerald-500
+                                        {% else %}text-emerald-400{% endif %}">
+                                        {{ q.risk_level }}
+                                    </span>
+                                </td>
+                                <td class="py-3 px-3 text-right space-x-2">
+                                    <a href="{{ url_for('assessment.quiz_detail', assessment_id=q.id) }}" class="text-mint-400 hover:text-mint-300 hover:underline">
+                                        View Breakdown
+                                    </a>
+                                    <a href="{{ url_for('assessment.download_pdf', assessment_id=q.id, quiz=1) }}" class="text-slate-400 hover:text-white" title="Download PDF">
+                                        PDF
+                                    </a>
+                                    <form method="POST" action="{{ url_for('assessment.delete_quiz_assessment', assessment_id=q.id) }}" class="inline" onsubmit="return confirm('Delete this questionnaire record?');">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                        <button type="submit" class="text-rose-400 hover:text-rose-300 ml-1 font-bold">✕</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="py-8 text-center text-slate-500 text-xs">
+                <i data-lucide="clipboard-x" class="w-8 h-8 text-slate-600 mx-auto mb-2"></i>
+                <p>No privacy questionnaires completed yet.</p>
+                <a href="{{ url_for('assessment.mode_b') }}" class="text-mint-400 hover:underline mt-1 inline-block">Take the 15-question privacy quiz →</a>
+            </div>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}

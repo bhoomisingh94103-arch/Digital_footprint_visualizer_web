@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block title %}Email Assessment Detail #{{ assessment.id }} — Digital Footprint Intelligence{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+    
+    <!-- Header with Back & PDF -->
+    <div class="flex items-center justify-between">
+        <a href="{{ url_for('assessment.history') }}" class="text-xs text-slate-400 hover:text-white flex items-center gap-1.5 transition-colors">
+            <i data-lucide="arrow-left" class="w-4 h-4"></i> Back to Scan History
+        </a>
+        <a href="{{ url_for('assessment.download_pdf', assessment_id=assessment.id) }}" class="btn-cyber-primary px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2">
+            <i data-lucide="download" class="w-4 h-4"></i> Download PDF Report
+        </a>
+    </div>
+
+    <!-- Overview Card -->
+    <div class="glass-panel p-8 rounded-3xl relative overflow-hidden">
+        <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+            <div>
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="px-3 py-1 rounded-full text-xs font-semibold border 
+                        {% if assessment.risk_score > 75 %}risk-badge-critical
+                        {% elif assessment.risk_score > 50 %}risk-badge-high
+                        {% elif assessment.risk_score > 25 %}risk-badge-moderate
+                        {% else %}risk-badge-low{% endif %}">
+                        {{ assessment.risk_level }}
+                    </span>
+                    <span class="text-xs text-slate-400 font-mono">{{ assessment.created_at.strftime("%Y-%m-%d %H:%M:%S UTC") }}</span>
+                </div>
+                <h1 class="text-2xl sm:text-3xl font-extrabold text-white">{{ assessment.email }}</h1>
+                <p class="text-xs text-slate-400 mt-1 font-mono">Assessment Reference: DFI-SEC-{{ assessment.id }}</p>
+            </div>
+
+            <div class="text-center p-5 rounded-2xl bg-[#05110a] border border-[#143321]">
+                <div class="text-4xl font-extrabold text-gradient-cyber font-mono">{{ assessment.risk_score }}</div>
+                <div class="text-[10px] uppercase font-mono tracking-wider text-slate-400 mt-1">Risk Score (0-100)</div>
+            </div>
+        </div>
+
+        <!-- Metrics Grid -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6 pt-6 border-t border-[#143321]">
+            <div class="p-3.5 rounded-2xl bg-[#05110a]/60 border border-[#143321]">
+                <div class="text-xs text-slate-400">Breach Exposures</div>
+                <div class="text-lg font-bold text-white mt-1 font-mono">{{ assessment.breach_count }}</div>
+            </div>
+            <div class="p-3.5 rounded-2xl bg-[#05110a]/60 border border-[#143321]">
+                <div class="text-xs text-slate-400">Pastes Indexed</div>
+                <div class="text-lg font-bold text-white mt-1 font-mono">{{ assessment.paste_count }}</div>
+            </div>
+            <div class="p-3.5 rounded-2xl bg-[#05110a]/60 border border-[#143321]">
+                <div class="text-xs text-slate-400">Total Leaked Records</div>
+                <div class="text-lg font-bold text-white mt-1 font-mono">{{ "{:,}".format(assessment.xposed_records_total) }}</div>
+            </div>
+            <div class="p-3.5 rounded-2xl bg-[#05110a]/60 border border-[#143321]">
+                <div class="text-xs text-slate-400">Reputation Status</div>
+                <div class="text-lg font-bold text-mint-400 mt-1 font-mono">{{ assessment.reputation_status }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Verified Breaches List -->
+    <div class="glass-panel p-6 sm:p-8 rounded-3xl space-y-4">
+        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+            <i data-lucide="database" class="w-5 h-5 text-emerald-400"></i>
+            <span>Verified Breach Records ({{ breaches|length }})</span>
+        </h3>
+
+        {% if breaches %}
+            <div class="space-y-3">
+                {% for b in breaches %}
+                    <div class="p-5 rounded-2xl bg-[#07150d]/80 border border-[#143321]">
+                        <div class="flex items-start justify-between flex-wrap gap-2 mb-2">
+                            <div>
+                                <h4 class="font-bold text-white text-base">{{ b.breach_name }}</h4>
+                                <p class="text-xs text-slate-400">{{ b.domain or 'Domain undisclosed' }} • Breach Year: {{ b.breach_date or 'N/A' }} • Exposed: {{ "{:,}".format(b.pwn_count) }} records</p>
+                            </div>
+                            <div>
+                                {% if b.password_risk == 'plaintext' %}
+                                    <span class="px-2.5 py-0.5 rounded text-xs bg-rose-950 text-rose-300 border border-rose-700 font-mono">Plaintext Password Leaked</span>
+                                {% elif b.password_risk == 'easytocrack' %}
+                                    <span class="px-2.5 py-0.5 rounded text-xs bg-amber-950 text-amber-300 border border-amber-700 font-mono">Weak Hash Password</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <p class="text-xs sm:text-sm text-slate-300 mb-3 leading-relaxed">{{ b.description }}</p>
+                        <div class="flex flex-wrap items-center gap-1.5 pt-3 border-t border-[#143321]">
+                            <span class="text-xs text-slate-400 font-medium mr-1 font-mono">Exposed Fields:</span>
+                            {% for c in b.get_data_classes_list() %}
+                                <span class="px-2 py-0.5 rounded bg-emerald-950/70 text-emerald-300 border border-emerald-800/60 text-[11px] font-mono">{{ c }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="p-8 text-center text-slate-400">
+                <i data-lucide="check-circle" class="w-8 h-8 text-emerald-400 mx-auto mb-2"></i>
+                <p>No breach records were found for this email address.</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Recommendations -->
+    <div class="glass-panel p-6 sm:p-8 rounded-3xl space-y-4">
+        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+            <i data-lucide="shield-check" class="w-5 h-5 text-emerald-400"></i>
+            <span>Assigned Security Recommendations</span>
+        </h3>
+        <div class="space-y-3">
+            {% for r in recommendations %}
+                <div class="p-4 rounded-xl bg-[#07150d]/80 border border-[#143321] flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                    <div class="space-y-1">
+                        <div class="flex items-center gap-2">
+                            <span class="px-2 py-0.5 rounded text-xs font-semibold border 
+                                {% if r.priority == 'Critical' %}border-rose-700 text-rose-300 bg-rose-950/40
+                                {% elif r.priority == 'High' %}border-amber-700 text-amber-300 bg-amber-950/40
+                                {% else %}border-emerald-700 text-mint-300 bg-emerald-950/40{% endif %}">
+                                {{ r.priority }}
+                            </span>
+                            <span class="text-xs text-slate-400 font-mono">{{ r.category }}</span>
+                        </div>
+                        <h5 class="text-sm font-bold text-white">{{ r.title }}</h5>
+                        <p class="text-xs text-slate-300">{{ r.reason }}</p>
+                    </div>
+                    {% if r.external_url %}
+                        <a href="{{ r.external_url }}" target="_blank" rel="noopener" class="text-xs text-emerald-400 hover:text-emerald-300 hover:underline">
+                            Resource Link →
+                        </a>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}500 — Internal Threat Processing Fault{% endblock %}
+
+{% block content %}
+<div class="min-h-[70vh] flex items-center justify-center px-4 py-16 text-center">
+    <div class="glass-panel p-10 rounded-3xl max-w-md w-full space-y-4 border border-forest-700/60 shadow-[0_20px_50px_rgba(0,0,0,0.6)]">
+        <div class="w-16 h-16 rounded-2xl bg-rose-950/60 border border-rose-800 text-rose-400 flex items-center justify-center mx-auto text-2xl font-bold font-mono shadow-lg">
+            500
+        </div>
+        <h2 class="text-2xl font-extrabold text-white">Threat Processing Exception</h2>
+        <p class="text-xs text-slate-400 leading-relaxed">
+            An unexpected error occurred while executing threat analysis routines. System logs have recorded the diagnostic trace.
+        </p>
+        <div class="pt-4">
+            <a href="{{ url_for('index') }}" class="btn-cyber-primary px-6 py-2.5 rounded-xl text-xs font-semibold inline-block">
+                Return to Safe Zone
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+
+{% block title %}Digital Footprint Intelligence — Discover Your Digital Presence{% endblock %}
+
+{% block content %}
+<!-- Hero Section with Canvas Particle Background -->
+<section class="relative min-h-[90vh] flex items-center justify-center overflow-hidden pt-12 pb-20">
+    <!-- Animated Interactive Matrix Canvas -->
+    <canvas id="cyber-canvas" class="absolute inset-0 w-full h-full pointer-events-auto z-0"></canvas>
+    
+    <!-- Background Subtle Forest/Emerald Glow Blobs -->
+    <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="absolute bottom-1/4 right-1/4 w-96 h-96 bg-forest-600/15 rounded-full blur-3xl pointer-events-none"></div>
+
+    <div class="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <!-- Live Threat Badge -->
+        <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#07150d]/80 border border-emerald-500/30 text-xs font-mono text-mint-300 mb-8 shadow-lg shadow-emerald-500/5 backdrop-blur-md">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+            <span>NEXT-GEN PERSONAL CYBER DEFENSE PLATFORM</span>
+        </div>
+
+        <!-- Main Title (Preserved exactly as requested) -->
+        <h1 class="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-white mb-6 leading-tight">
+            Discover Your Digital Presence.<br/>
+            <span class="text-gradient-cyber">Understand Your Risks.</span><br/>
+            Take Control.
+        </h1>
+
+        <!-- Subtitle (Preserved exactly) -->
+        <p class="max-w-2xl mx-auto text-base sm:text-lg text-slate-300 mb-10 leading-relaxed font-normal">
+            Analyze publicly exposed credentials, audit network privacy telemetry, uncover digital footprint vectors, and harden your personal cyber resilience with verified real-time threat intelligence.
+        </p>
+
+        <!-- CTA Buttons for the Two Assessment Modes -->
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-4 max-w-md mx-auto mb-16">
+            <a href="{{ url_for('assessment.mode_a') }}" class="w-full sm:w-auto btn-cyber-primary px-6 py-3.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 group">
+                <i data-lucide="mail-search" class="w-4 h-4 text-mint-200 group-hover:scale-110 transition-transform"></i>
+                <span>Start New Scan</span>
+            </a>
+            <a href="{{ url_for('assessment.mode_b') }}" class="w-full sm:w-auto btn-cyber-secondary px-6 py-3.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2">
+                <i data-lucide="clipboard-check" class="w-4 h-4 text-sage-400"></i>
+                <span>Privacy Quiz (Mode B)</span>
+            </a>
+        </div>
+
+        <!-- Trust & Verification Highlights -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-4xl mx-auto pt-8 border-t border-[#143321] text-left">
+            <div class="p-3 rounded-xl bg-[#07150d]/60 border border-[#143321]">
+                <div class="flex items-center gap-2 text-mint-400 mb-1">
+                    <i data-lucide="shield-check" class="w-4 h-4"></i>
+                    <span class="text-xs font-bold font-mono">100% REAL DATA</span>
+                </div>
+                <p class="text-[11px] text-slate-400">Verified APIs only; zero simulated or fake breach entries.</p>
+            </div>
+            <div class="p-3 rounded-xl bg-[#07150d]/60 border border-[#143321]">
+                <div class="flex items-center gap-2 text-sage-400 mb-1">
+                    <i data-lucide="lock" class="w-4 h-4"></i>
+                    <span class="text-xs font-bold font-mono">ZERO CREDENTIAL ACCESS</span>
+                </div>
+                <p class="text-[11px] text-slate-400">We never request passwords or private email inbox permissions.</p>
+            </div>
+            <div class="p-3 rounded-xl bg-[#07150d]/60 border border-[#143321]">
+                <div class="flex items-center gap-2 text-emerald-400 mb-1">
+                    <i data-lucide="file-text" class="w-4 h-4"></i>
+                    <span class="text-xs font-bold font-mono">REPORTLAB PDF</span>
+                </div>
+                <p class="text-[11px] text-slate-400">Export downloadable executive cybersecurity audits instantly.</p>
+            </div>
+            <div class="p-3 rounded-xl bg-[#07150d]/60 border border-[#143321]">
+                <div class="flex items-center gap-2 text-emerald-300 mb-1">
+                    <i data-lucide="network" class="w-4 h-4"></i>
+                    <span class="text-xs font-bold font-mono">ISOLATED IP INTEL</span>
+                </div>
+                <p class="text-[11px] text-slate-400">HackMyIP telemetry never linked to your email identifier.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Two Assessment Modes Detailed Comparison Section -->
+<section class="py-20 bg-[#040c07]/80 border-y border-[#143321]">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center max-w-3xl mx-auto mb-16">
+            <h2 class="text-xs font-mono font-bold tracking-wider text-emerald-400 uppercase mb-2">Architected for Total Independence</h2>
+            <h3 class="text-3xl font-extrabold text-white">Choose Your Assessment Vector</h3>
+            <p class="text-sm text-slate-400 mt-3">
+                Whether you want to audit a specific email address against known global breaches, or evaluate your daily privacy habits without entering any personal email, Digital Footprint Intelligence has you covered.
+            </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+            <!-- Mode A Card -->
+            <div class="glass-panel p-8 rounded-3xl relative overflow-hidden group hover:border-emerald-500/50 transition-all">
+                <div class="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
+                    <i data-lucide="mail-search" class="w-32 h-32 text-emerald-400"></i>
+                </div>
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-950/70 text-emerald-300 border border-emerald-800 text-xs font-semibold mb-4 font-mono">
+                    <span>MODE A</span> • External Threat Intelligence
+                </div>
+                <h4 class="text-2xl font-bold text-white mb-3">Email Footprint & Breach Assessment</h4>
+                <p class="text-sm text-slate-300 leading-relaxed mb-6">
+                    Runs live, documented API checks against verified global indexes to discover where your credentials and personal records were compromised.
+                </p>
+                <ul class="space-y-2.5 text-xs text-slate-300 mb-8 font-medium">
+                    <li class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-emerald-400"></i> XposedOrNot Verified Breach & Paste Indexing</li>
+                    <li class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-emerald-400"></i> Password Strength & Hash Vulnerability Breakdown</li>
+                    <li class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-emerald-400"></i> Exposed Data Classes (SSN, Phone, Physical Address)</li>
+                    <li class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-emerald-400"></i> Separate Visitor Network Privacy Analysis (HackMyIP)</li>
+                </ul>
+                <a href="{{ url_for('assessment.mode_a') }}" class="btn-cyber-primary w-full py-3 rounded-xl text-center block font-semibold text-sm">
+                    Launch Email Assessment →
+                </a>
+            </div>
+
+            <!-- Mode B Card -->
+            <div class="glass-panel p-8 rounded-3xl relative overflow-hidden group hover:border-sage-500/50 transition-all">
+                <div class="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
+                    <i data-lucide="clipboard-check" class="w-32 h-32 text-sage-400"></i>
+                </div>
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#0d2216] text-sage-300 border border-forest-600 text-xs font-semibold mb-4 font-mono">
+                    <span>MODE B</span> • Zero-Identifier Privacy Audit
+                </div>
+                <h4 class="text-2xl font-bold text-white mb-3">General Digital Privacy Assessment</h4>
+                <p class="text-sm text-slate-300 leading-relaxed mb-6">
+                    A comprehensive 15-question cybersecurity questionnaire for users who prefer not to enter an email address. Transparent mathematical scoring from 0 to 100.
+                </p>
+                <ul class="space-y-2.5 text-xs text-slate-300 mb-8 font-medium">
+                    <li class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-mint-400"></i> 15 Cybersecurity Questions across 5 Threat Dimensions</li>
+                    <li class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-mint-400"></i> Password Reuse, 2FA, Social Visibility & Tracking Hygiene</li>
+                    <li class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-mint-400"></i> Transparent Scoring Logic with Category Breakdowns</li>
+                    <li class="flex items-center gap-2"><i data-lucide="check" class="w-4 h-4 text-mint-400"></i> Tailored Recommendations for Every Vulnerability</li>
+                </ul>
+                <a href="{{ url_for('assessment.mode_b') }}" class="btn-cyber-secondary w-full py-3 rounded-xl text-center block font-semibold text-sm">
+                    Start Privacy Questionnaire →
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- How It Works (3 Steps) -->
+<section class="py-20">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center max-w-2xl mx-auto mb-16">
+            <h2 class="text-xs font-mono font-bold tracking-wider text-emerald-400 uppercase mb-2">Transparent Methodology</h2>
+            <h3 class="text-3xl font-extrabold text-white">How The Platform Works</h3>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div class="p-6 rounded-3xl bg-[#07150d]/70 border border-[#143321] relative">
+                <div class="w-12 h-12 rounded-2xl bg-[#0d2216] border border-emerald-700/50 text-mint-400 font-mono font-extrabold text-lg flex items-center justify-center mb-4 shadow-md">
+                    01
+                </div>
+                <h4 class="text-lg font-bold text-white mb-2">Select Your Assessment</h4>
+                <p class="text-xs text-slate-400 leading-relaxed">
+                    Choose between deep external email breach indexing (Mode A) or an anonymous 15-question security habits evaluation (Mode B).
+                </p>
+            </div>
+
+            <div class="p-6 rounded-3xl bg-[#07150d]/70 border border-[#143321] relative">
+                <div class="w-12 h-12 rounded-2xl bg-[#0d2216] border border-sage-600/50 text-sage-300 font-mono font-extrabold text-lg flex items-center justify-center mb-4 shadow-md">
+                    02
+                </div>
+                <h4 class="text-lg font-bold text-white mb-2">Live Threat Processing</h4>
+                <p class="text-xs text-slate-400 leading-relaxed">
+                    The backend queries verified APIs (XposedOrNot, HackMyIP, EmailRep) or computes transparent category scores without exposing sensitive data.
+                </p>
+            </div>
+
+            <div class="p-6 rounded-3xl bg-[#07150d]/70 border border-[#143321] relative">
+                <div class="w-12 h-12 rounded-2xl bg-[#0d2216] border border-emerald-700/50 text-emerald-400 font-mono font-extrabold text-lg flex items-center justify-center mb-4 shadow-md">
+                    03
+                </div>
+                <h4 class="text-lg font-bold text-white mb-2">Harden Your Footprint</h4>
+                <p class="text-xs text-slate-400 leading-relaxed">
+                    Review your risk meter, download your executive ReportLab PDF report, and complete step-by-step hardening tasks in the Action Center.
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Call to Action Banner -->
+<section class="py-16 bg-gradient-to-b from-[#040c07] to-[#030805]">
+    <div class="max-w-4xl mx-auto px-4 text-center glass-panel-glow p-10 rounded-3xl">
+        <h3 class="text-2xl sm:text-3xl font-extrabold text-white mb-4">Ready to Take Control of Your Digital Footprint?</h3>
+        <p class="text-sm text-slate-300 max-w-xl mx-auto mb-8">
+            Perform an immediate security assessment to discover your exposure surface and safeguard your personal identity today.
+        </p>
+        <div class="flex flex-wrap items-center justify-center gap-4">
+            <a href="{{ url_for('assessment.mode_a') }}" class="btn-cyber-primary px-6 py-3 rounded-xl text-sm font-semibold">
+                Start New Scan (Mode A)
+            </a>
+            <a href="{{ url_for('auth.signup') }}" class="btn-cyber-secondary px-6 py-3 rounded-xl text-sm font-semibold">
+                Create Free Account
+            </a>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/cyber_canvas.js') }}"></script>
+{% endblock %}

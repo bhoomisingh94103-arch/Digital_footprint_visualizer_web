@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+
+{% block title %}Digital Footprint Visualization — Digital Footprint Intelligence{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10">
+    
+    <!-- Header -->
+    <div class="text-center max-w-3xl mx-auto">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#0d2216] border border-emerald-800 text-mint-300 text-xs font-mono font-semibold mb-3">
+            <i data-lucide="fingerprint" class="w-3.5 h-3.5"></i> DIGITAL IDENTITY MAPPING
+        </div>
+        <h1 class="text-3xl sm:text-4xl font-extrabold text-white">Digital Footprint Visualization</h1>
+        <p class="text-sm text-slate-400 mt-2">
+            Multi-layered breakdown of your digital exposure surface with strict provenance labeling across verified API results, questionnaire estimates, and hardening guides.
+        </p>
+    </div>
+
+    <!-- Provenance Badges Legend Banner -->
+    <div class="glass-panel p-4 rounded-2xl flex flex-wrap items-center justify-between gap-3 text-xs">
+        <span class="text-slate-400 font-semibold font-mono">Data Provenance Standards:</span>
+        <div class="flex flex-wrap items-center gap-2 font-mono text-[11px]">
+            <span class="px-2.5 py-1 rounded-md bg-emerald-950/80 text-emerald-300 border border-emerald-700 flex items-center gap-1.5">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> [Verified API Finding]
+            </span>
+            <span class="px-2.5 py-1 rounded-md bg-[#0d2216] text-mint-300 border border-forest-600 flex items-center gap-1.5">
+                <span class="w-1.5 h-1.5 rounded-full bg-mint-400"></span> [Questionnaire-Based Estimate]
+            </span>
+            <span class="px-2.5 py-1 rounded-md bg-[#081f12] text-sage-300 border border-emerald-800/80 flex items-center gap-1.5">
+                <span class="w-1.5 h-1.5 rounded-full bg-sage-400"></span> [Informational Recommendation]
+            </span>
+            <span class="px-2.5 py-1 rounded-md bg-[#030805] text-slate-500 border border-[#143321] flex items-center gap-1.5">
+                <span class="w-1.5 h-1.5 rounded-full bg-slate-600"></span> [Unavailable Data]
+            </span>
+        </div>
+    </div>
+
+    <!-- The 6 Digital Identity Footprint Vectors Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        
+        <!-- Vector 1: Email Exposure -->
+        <div class="glass-panel p-6 rounded-3xl space-y-4 relative overflow-hidden">
+            <div class="flex items-start justify-between">
+                <div class="w-10 h-10 rounded-xl bg-[#0d2216] border border-emerald-800 flex items-center justify-center text-emerald-400">
+                    <i data-lucide="mail-warning" class="w-5 h-5"></i>
+                </div>
+                <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-950 text-emerald-300 border border-emerald-700">
+                    Verified API Finding
+                </span>
+            </div>
+            <div>
+                <h3 class="text-base font-bold text-white">Email Address Exposure</h3>
+                <p class="text-xs text-slate-400 mt-1">Direct indexing on global credential breach databases (XposedOrNot).</p>
+            </div>
+            <div class="p-4 rounded-2xl bg-[#05110a] border border-[#143321] space-y-2 text-xs">
+                {% if latest_email %}
+                    <div class="flex justify-between">
+                        <span class="text-slate-400">Audited Email:</span>
+                        <span class="font-mono text-white font-semibold">{{ latest_email.email }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-slate-400">Breaches Detected:</span>
+                        <span class="font-bold {% if latest_email.breach_count > 0 %}text-rose-400{% else %}text-emerald-400{% endif %}">
+                            {{ latest_email.breach_count }} record(s)
+                        </span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-slate-400">Password Leaks:</span>
+                        <span class="text-slate-200">
+                            {% set pwd_count = breaches | selectattr('password_risk', 'in', ['plaintext', 'easytocrack']) | list | length %}
+                            {{ pwd_count }} weak/plaintext leaks
+                        </span>
+                    </div>
+                {% else %}
+                    <p class="text-slate-500 italic">No email scans recorded. <a href="{{ url_for('assessment.mode_a') }}" class="text-emerald-400 hover:underline">Scan now →</a></p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Vector 2: Personal Information Exposure -->
+        <div class="glass-panel p-6 rounded-3xl space-y-4 relative overflow-hidden">
+            <div class="flex items-start justify-between">
+                <div class="w-10 h-10 rounded-xl bg-[#0d2216] border border-forest-600 flex items-center justify-center text-sage-400">
+                    <i data-lucide="user-x" class="w-5 h-5"></i>
+                </div>
+                <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-[#0d2216] text-mint-300 border border-forest-600">
+                    Questionnaire Estimate
+                </span>
+            </div>
+            <div>
+                <h3 class="text-base font-bold text-white">Personal Information Surface</h3>
+                <p class="text-xs text-slate-400 mt-1">Evaluates discoverability of phone numbers, physical address, and birthdate.</p>
+            </div>
+            <div class="p-4 rounded-2xl bg-[#05110a] border border-[#143321] space-y-2 text-xs">
+                {% if quiz_categories and 'Social & Privacy' in quiz_categories %}
+                    <div class="flex justify-between">
+                        <span class="text-slate-400">Exposure Score:</span>
+                        <span class="font-bold text-mint-300 font-mono">{{ quiz_categories['Social & Privacy'] }}/100</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-slate-400">Data Broker Risk:</span>
+                        <span class="text-slate-200">{% if quiz_categories['Social & Privacy'] > 50 %}Elevated Index{% else %}Minimal Profile{% endif %}</span>
+                    </div>
+                {% else %}
+                    <p class="text-slate-500 italic">Evaluated via Mode B. <a href="{{ url_for('assessment.mode_b') }}" class="text-sage-400 hover:underline">Complete quiz →</a></p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Vector 3: Network Privacy -->
+        <div class="glass-panel p-6 rounded-3xl space-y-4 relative overflow-hidden">
+            <div class="flex items-start justify-between">
+                <div class="w-10 h-10 rounded-xl bg-[#0d2216] border border-emerald-800 flex items-center justify-center text-mint-400">
+                    <i data-lucide="network" class="w-5 h-5"></i>
+                </div>
+                <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-950 text-emerald-300 border border-emerald-700">
+                    Verified API Finding
+                </span>
+            </div>
+            <div>
+                <h3 class="text-base font-bold text-white">Network Privacy & IP</h3>
+                <p class="text-xs text-slate-400 mt-1">Visitor IP telemetry, ISP geolocation, and proxy/VPN detection (HackMyIP).</p>
+            </div>
+            <div class="p-4 rounded-2xl bg-[#05110a] border border-[#143321] space-y-2 text-xs">
+                {% if latest_ip %}
+                    <div class="flex justify-between">
+                        <span class="text-slate-400">IP Location:</span>
+                        <span class="text-white font-medium">{{ latest_ip.city }}, {{ latest_ip.country }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-slate-400">ISP Organization:</span>
+                        <span class="text-slate-200 truncate max-w-[140px]">{{ latest_ip.isp }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-slate-400">Proxy / VPN Shield:</span>
+                        <span class="font-bold {% if latest_ip.is_vpn or latest_ip.is_proxy %}text-mint-400{% else %}text-slate-300{% endif %}">
+                            {% if latest_ip.is_vpn or latest_ip.is_proxy %}Shield Active{% else %}Direct Connection{% endif %}
+                        </span>
+                    </div>
+                {% else %}
+                    <p class="text-slate-500 italic">Network scan completed on Mode A run.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Vector 4: Account Security Habits -->
+        <div class="glass-panel p-6 rounded-3xl space-y-4 relative overflow-hidden">
+            <div class="flex items-start justify-between">
+                <div class="w-10 h-10 rounded-xl bg-[#0d2216] border border-emerald-800 flex items-center justify-center text-emerald-400">
+                    <i data-lucide="key-round" class="w-5 h-5"></i>
+                </div>
+                <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-[#0d2216] text-mint-300 border border-forest-600">
+                    Questionnaire Estimate
+                </span>
+            </div>
+            <div>
+                <h3 class="text-base font-bold text-white">Account Security Habits</h3>
+                <p class="text-xs text-slate-400 mt-1">Password complexity, password managers, and two-factor authentication.</p>
+            </div>
+            <div class="p-4 rounded-2xl bg-[#05110a] border border-[#143321] space-y-2 text-xs">
+                {% if quiz_categories and 'Authentication' in quiz_categories %}
+                    <div class="flex justify-between">
+                        <span class="text-slate-400">Auth Risk Score:</span>
+                        <span class="font-bold text-emerald-400 font-mono">{{ quiz_categories['Authentication'] }}/100</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-slate-400">Hygiene Grade:</span>
+                        <span class="text-white">{% if quiz_categories['Authentication'] <= 25 %}Hardened{% elif quiz_categories['Authentication'] <= 50 %}Moderate{% else %}Vulnerable{% endif %}</span>
+                    </div>
+                {% else %}
+                    <p class="text-slate-500 italic">Evaluated via Mode B Questionnaire.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Vector 5: Social Media Privacy -->
+        <div class="glass-panel p-6 rounded-3xl space-y-4 relative overflow-hidden">
+            <div class="flex items-start justify-between">
+                <div class="w-10 h-10 rounded-xl bg-[#0d2216] border border-forest-600 flex items-center justify-center text-sage-400">
+                    <i data-lucide="share-2" class="w-5 h-5"></i>
+                </div>
+                <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-[#081f12] text-sage-300 border border-emerald-800">
+                    Hardening Guide
+                </span>
+            </div>
+            <div>
+                <h3 class="text-base font-bold text-white">Social Media Privacy</h3>
+                <p class="text-xs text-slate-400 mt-1">Public searchability, photo EXIF geo-tags, and contact harvesting.</p>
+            </div>
+            <div class="p-4 rounded-2xl bg-[#05110a] border border-[#143321] space-y-2 text-xs">
+                <p class="text-slate-300">
+                    Review and complete the Social Media Privacy Checklist to lock down profile visibility and metadata.
+                </p>
+                <a href="{{ url_for('action_center.index') }}" class="text-emerald-400 hover:text-emerald-300 hover:underline font-semibold block pt-1">
+                    Open Checklist in Action Center →
+                </a>
+            </div>
+        </div>
+
+        <!-- Vector 6: Browser Privacy -->
+        <div class="glass-panel p-6 rounded-3xl space-y-4 relative overflow-hidden">
+            <div class="flex items-start justify-between">
+                <div class="w-10 h-10 rounded-xl bg-[#0d2216] border border-emerald-800 flex items-center justify-center text-mint-400">
+                    <i data-lucide="globe" class="w-5 h-5"></i>
+                </div>
+                <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-[#081f12] text-sage-300 border border-emerald-800">
+                    Hardening Guide
+                </span>
+            </div>
+            <div>
+                <h3 class="text-base font-bold text-white">Browser Tracking & Cookies</h3>
+                <p class="text-xs text-slate-400 mt-1">Cross-site behavioral trackers, canvas fingerprinting, and DNS hygiene.</p>
+            </div>
+            <div class="p-4 rounded-2xl bg-[#05110a] border border-[#143321] space-y-2 text-xs">
+                <p class="text-slate-300">
+                    Deploy uBlock Origin, switch to Encrypted DNS (DoH), and block third-party tracking beacons.
+                </p>
+                <a href="{{ url_for('action_center.index') }}" class="text-mint-400 hover:text-mint-300 hover:underline font-semibold block pt-1">
+                    Open Browser Defense Guide →
+                </a>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Explicit Scope & Limitation Disclaimer -->
+    <div class="p-6 rounded-3xl bg-[#05110a] border border-[#143321] text-xs text-slate-400 space-y-2">
+        <h4 class="font-bold text-white flex items-center gap-2">
+            <i data-lucide="info" class="w-4 h-4 text-emerald-400"></i>
+            <span>Platform Scope & Privacy Architecture Notice</span>
+        </h4>
+        <p class="leading-relaxed">
+            Digital Footprint Intelligence does <strong>not</strong> possess visibility into private Gmail accounts, internal Google workspace messages, private banking vaults, or unindexed services. Our analysis synthesizes public breach indexes, network diagnostic telemetry, and user-reported security questionnaires. No service credentials are requested or handled.
+        </p>
+    </div>
+
+</div>
+{% endblock %}
