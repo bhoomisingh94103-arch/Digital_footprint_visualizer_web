@@ -1,7 +1,7 @@
 import os
 import json
 import re
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for, send_file, current_app, session
 from flask_login import current_user, login_required
 from models import db, EmailAssessment, BreachFinding, EmailRepCheck, IPAssessment, QuestionnaireAssessment, Recommendation, UserRecommendationProgress, PDFReport
@@ -12,6 +12,8 @@ from services.hibp_service import check_hibp_breaches
 from services.scoring_service import calculate_questionnaire_score, QUESTIONNAIRE_QUESTIONS
 from services.recommendation_engine import generate_recommendations_for_email_assessment, generate_recommendations_for_questionnaire
 from services.pdf_service import generate_pdf_report
+from services.email_verifier import validate_email_syntax, check_domain_mx
+from services.email_service import dispatch_scan_otp
 
 assessment_bp = Blueprint('assessment', __name__, url_prefix='/assessment')
 
@@ -28,6 +30,129 @@ def mode_a():
     return render_template('assessment/mode_a_email.html', prefill_email=user_email)
 
 
+@assessment_bp.route('/api/request-scan-otp', methods=['POST'])
+def api_request_scan_otp():
+    """
+    Validate email syntax, verify domain MX records, and dispatch OTP via SMTP.
+    Returns error if syntax invalid, MX missing, or SMTP delivery fails/rejects.
+    """
+    data = request.get_json() or {}
+    email = data.get('email', '').strip().lower()
+    consent = data.get('consent', False)
+
+    if not consent:
+        return jsonify({
+            'success': False,
+            'error': 'You must acknowledge the privacy notice and authorize public index scanning.'
+        }), 400
+
+    # 1. Validate email syntax
+    is_valid_syntax, clean_email, syntax_err = validate_email_syntax(email)
+    if not is_valid_syntax:
+        return jsonify({
+            'success': False,
+            'error': syntax_err
+        }), 400
+
+    # 2. Check domain MX records
+    has_mx, mx_hosts, mx_err = check_domain_mx(clean_email)
+    if not has_mx:
+        return jsonify({
+            'success': False,
+            'error': mx_err
+        }), 400
+
+    # 3. If authenticated user is already verified for this exact email
+    if current_user.is_authenticated and current_user.is_verified and current_user.email == clean_email:
+        session['mode_a_verified_email'] = clean_email
+        session['mode_a_verified_at'] = datetime.now(timezone.utc).timestamp()
+        return jsonify({
+            'success': True,
+            'already_verified': True,
+            'email': clean_email,
+            'message': 'Email is already verified on your account. Ready to initiate security scan.'
+        })
+
+    # 4. Dispatch OTP via SMTP
+    otp, sent, msg = dispatch_scan_otp(clean_email)
+    if not sent:
+        return jsonify({
+            'success': False,
+            'error': msg
+        }), 400
+
+    # 5. Store pending OTP verification in session
+    session['pending_scan_email'] = clean_email
+    session['pending_scan_otp'] = otp
+    session['pending_scan_otp_expiry'] = (datetime.now(timezone.utc) + timedelta(minutes=10)).timestamp()
+    session['pending_scan_otp_attempts'] = 0
+
+    return jsonify({
+        'success': True,
+        'email': clean_email,
+        'message': f"A 6-digit verification code has been dispatched to {clean_email}. Please enter the code to confirm mailbox existence before scanning."
+    })
+
+
+@assessment_bp.route('/api/verify-scan-otp', methods=['POST'])
+def api_verify_scan_otp():
+    """
+    Verify submitted 6-digit OTP code before permitting Mode A scan.
+    """
+    data = request.get_json() or {}
+    email = data.get('email', '').strip().lower()
+    code = data.get('otp_code', '').strip()
+
+    pending_email = session.get('pending_scan_email')
+    stored_otp = session.get('pending_scan_otp')
+    expiry_ts = session.get('pending_scan_otp_expiry', 0)
+    attempts = session.get('pending_scan_otp_attempts', 0)
+
+    if not pending_email or pending_email != email or not stored_otp:
+        return jsonify({
+            'success': False,
+            'error': 'No pending verification found for this email. Please request a new verification code.'
+        }), 400
+
+    if attempts >= 5:
+        session.pop('pending_scan_otp', None)
+        session.pop('pending_scan_email', None)
+        return jsonify({
+            'success': False,
+            'error': 'Maximum verification attempts (5) exceeded. Please request a new verification code.'
+        }), 400
+
+    now_ts = datetime.now(timezone.utc).timestamp()
+    if now_ts > expiry_ts:
+        session.pop('pending_scan_otp', None)
+        session.pop('pending_scan_email', None)
+        return jsonify({
+            'success': False,
+            'error': 'Verification code has expired. Please request a new one.'
+        }), 400
+
+    if stored_otp != code:
+        session['pending_scan_otp_attempts'] = attempts + 1
+        remaining = 5 - (attempts + 1)
+        return jsonify({
+            'success': False,
+            'error': f"Incorrect verification code. {remaining} attempt(s) remaining."
+        }), 400
+
+    # Verification successful
+    session['mode_a_verified_email'] = email
+    session['mode_a_verified_at'] = datetime.now(timezone.utc).timestamp()
+    session.pop('pending_scan_otp', None)
+    session.pop('pending_scan_email', None)
+
+    return jsonify({
+        'success': True,
+        'verified': True,
+        'email': email,
+        'message': 'Mailbox successfully verified! Initiating threat intelligence scan...'
+    })
+
+
 @assessment_bp.route('/api/scan-email', methods=['POST'])
 def api_scan_email():
     """
@@ -36,37 +161,55 @@ def api_scan_email():
     2. HackMyIP for visitor network analysis (isolated)
     3. EmailRep for reputation and disposable status
     4. HIBP (optional)
+    Strictly requires successful OTP verification before report generation.
     """
     data = request.get_json() or {}
     email = data.get('email', '').strip().lower()
     consent = data.get('consent', False)
-    
+
     # 1. Validation
-    if not email or not re.match(EMAIL_REGEX, email):
+    is_valid_syntax, clean_email, syntax_err = validate_email_syntax(email)
+    if not is_valid_syntax:
         return jsonify({
             'success': False,
-            'error': 'Please provide a valid email address (e.g., user@example.com).'
+            'error': syntax_err
         }), 400
-        
+
     if not consent:
         return jsonify({
             'success': False,
             'error': 'You must acknowledge the privacy notice and authorize public index scanning.'
         }), 400
 
+    # 2. Check OTP verification requirement
+    is_verified = False
+    if current_user.is_authenticated and current_user.is_verified and current_user.email == clean_email:
+        is_verified = True
+    elif session.get('mode_a_verified_email') == clean_email:
+        verified_at = session.get('mode_a_verified_at', 0)
+        # Verified within past 30 minutes
+        if datetime.now(timezone.utc).timestamp() - verified_at <= 1800:
+            is_verified = True
+
+    if not is_verified:
+        return jsonify({
+            'success': False,
+            'error': 'Email verification required. You must verify the OTP code sent to your mailbox before generating a scan report.'
+        }), 403
+
     user_id = current_user.id if current_user.is_authenticated else None
 
-    # 2. Query XposedOrNot
-    xon_result = check_email_breaches(email)
+    # 3. Query XposedOrNot
+    xon_result = check_email_breaches(clean_email)
     
     # 3. Query HackMyIP (Separate Network Assessment - Visitor IP)
     ip_result = analyze_network_ip()
     
     # 4. Query EmailRep
-    emailrep_result = check_email_reputation(email)
+    emailrep_result = check_email_reputation(clean_email)
     
     # 5. Query HIBP (Optional)
-    hibp_result = check_hibp_breaches(email)
+    hibp_result = check_hibp_breaches(clean_email)
 
     # 6. Aggregate risk score and metrics
     breach_count = xon_result.get('breach_count', 0)
@@ -81,7 +224,7 @@ def api_scan_email():
     # Save EmailAssessment to Database
     assessment = EmailAssessment(
         user_id=user_id,
-        email=email,
+        email=clean_email,
         risk_score=risk_score,
         risk_level=risk_label,
         breach_count=breach_count,
@@ -173,7 +316,7 @@ def api_scan_email():
     pdf_payload = {
         'assessment_id': assessment.id,
         'scan_date': assessment.created_at.strftime("%Y-%m-%d %H:%M:%S UTC"),
-        'email': email,
+        'email': clean_email,
         'risk_score': risk_score,
         'risk_level': risk_label,
         'breach_count': breach_count,
@@ -204,7 +347,7 @@ def api_scan_email():
     session['last_assessment'] = {
         'id': assessment.id,
         'scan_type': 'Email Footprint (Mode A)',
-        'target': email,
+        'target': clean_email,
         'risk_score': risk_score,
         'risk_level': risk_label,
         'breach_count': breach_count
@@ -213,7 +356,7 @@ def api_scan_email():
     return jsonify({
         'success': True,
         'assessment_id': assessment.id,
-        'email': email,
+        'email': clean_email,
         'risk_score': risk_score,
         'risk_level': risk_label,
         'breach_count': breach_count,

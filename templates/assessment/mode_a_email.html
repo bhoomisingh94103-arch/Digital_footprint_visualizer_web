@@ -54,9 +54,51 @@
 
             <button type="submit" id="scan-btn" class="w-full btn-cyber-primary py-3.5 rounded-xl font-bold text-sm tracking-wide shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2">
                 <i data-lucide="scan" class="w-4 h-4"></i>
-                <span>Initiate Cybersecurity Scan</span>
+                <span id="scan-btn-text">Verify Email & Initiate Scan</span>
             </button>
         </form>
+
+        <!-- OTP Verification Box (Hidden until OTP dispatched) -->
+        <div id="otp-verification-box" class="hidden mt-6 pt-6 border-t border-[#143321] space-y-4">
+            <div class="p-5 rounded-2xl bg-[#05110a] border border-emerald-500/30 space-y-4 shadow-xl">
+                <div class="text-center space-y-1.5">
+                    <div class="w-10 h-10 rounded-xl bg-forest-900/80 border border-emerald-500/30 flex items-center justify-center mx-auto text-mint-400 shadow-md shadow-emerald-950/40">
+                        <i data-lucide="key-round" class="w-5 h-5"></i>
+                    </div>
+                    <h3 class="text-base font-bold text-white">Mailbox Existence Verification</h3>
+                    <p class="text-xs text-slate-400 max-w-md mx-auto">
+                        A 6-digit one-time passcode was dispatched to <span id="otp-target-display" class="text-mint-300 font-semibold font-mono"></span>. Verify receipt to confirm mailbox existence before the scan begins.
+                    </p>
+                </div>
+
+                <div class="max-w-xs mx-auto space-y-2">
+                    <label for="scan-otp-input" class="block text-[11px] font-mono font-semibold text-slate-400 text-center uppercase tracking-wider">
+                        6-Digit Security Passcode
+                    </label>
+                    <input type="text" id="scan-otp-input" maxlength="6" placeholder="••••••" autocomplete="one-time-code"
+                           class="w-full text-center tracking-[0.5em] font-mono text-2xl font-bold py-3 px-4 rounded-xl bg-[#030805] border border-[#143321] text-mint-400 focus:outline-none focus:border-emerald-400 transition-colors">
+                </div>
+
+                <div class="flex items-center justify-center gap-1.5 text-[11px] text-slate-500">
+                    <i data-lucide="clock" class="w-3.5 h-3.5 text-emerald-400/70"></i>
+                    <span>Expires in 10 minutes • 5 maximum attempts</span>
+                </div>
+
+                <button type="button" id="confirm-otp-btn" class="w-full btn-cyber-primary py-3 rounded-xl font-bold text-sm tracking-wide shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2">
+                    <i data-lucide="shield-check" class="w-4 h-4"></i>
+                    <span id="confirm-otp-btn-text">Verify Passcode & Execute Threat Scan</span>
+                </button>
+
+                <div class="flex items-center justify-between pt-2 border-t border-[#0d2216] text-xs">
+                    <button type="button" id="resend-otp-btn" class="text-slate-400 hover:text-mint-300 transition-colors">
+                        Resend Code
+                    </button>
+                    <button type="button" id="change-email-btn" class="text-slate-400 hover:text-white transition-colors">
+                        Change Target Email
+                    </button>
+                </div>
+            </div>
+        </div>
 
         <!-- Scanning Animation Box -->
         <div id="scan-status-box" class="hidden mt-6 pt-6 border-t border-[#143321] text-center space-y-3">

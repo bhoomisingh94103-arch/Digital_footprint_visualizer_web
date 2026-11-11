@@ -1,6 +1,6 @@
 /**
  * Digital Footprint Intelligence - Mode A Interactive Email Scanner
- * Sage & Emerald Cyber Theme
+ * Sage & Emerald Cyber Theme with Robust Mailbox Existence & OTP Verification
  */
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -10,10 +10,25 @@ document.addEventListener('DOMContentLoaded', function () {
     const emailInput = document.getElementById('target-email');
     const consentCheckbox = document.getElementById('consent-checkbox');
     const scanBtn = document.getElementById('scan-btn');
+    const scanBtnText = document.getElementById('scan-btn-text');
+    
+    // OTP verification elements
+    const otpBox = document.getElementById('otp-verification-box');
+    const otpTargetDisplay = document.getElementById('otp-target-display');
+    const otpInput = document.getElementById('scan-otp-input');
+    const confirmOtpBtn = document.getElementById('confirm-otp-btn');
+    const confirmOtpBtnText = document.getElementById('confirm-otp-btn-text');
+    const resendOtpBtn = document.getElementById('resend-otp-btn');
+    const changeEmailBtn = document.getElementById('change-email-btn');
+
+    // Scan progress and results
     const scanStatusBox = document.getElementById('scan-status-box');
     const statusText = document.getElementById('status-step-text');
     const resultsContainer = document.getElementById('scan-results');
 
+    let currentTargetEmail = '';
+
+    // Step 1: Submit Form to Request OTP & Verify Mailbox Existence
     scanForm.addEventListener('submit', async function (e) {
         e.preventDefault();
 
@@ -23,21 +38,191 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
+        // Basic client-side syntax guard
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            showToast('Invalid email syntax. Please provide a standard address format (e.g. user@example.com).', 'danger');
+            return;
+        }
+
         if (!consentCheckbox.checked) {
-            showToast('You must check the consent box to proceed.', 'warning');
+            showToast('You must check the privacy authorization box to proceed.', 'warning');
             consentCheckbox.focus();
             return;
         }
 
-        // UI Scanning State
+        currentTargetEmail = email;
+
+        // Button state
         scanBtn.disabled = true;
         scanBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        if (scanBtnText) scanBtnText.textContent = 'Verifying syntax, DNS & MX...';
+
+        try {
+            const response = await fetch('/assessment/api/request-scan-otp', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    email: email,
+                    consent: true
+                })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok || !data.success) {
+                throw new Error(data.error || "We couldn't verify whether this email address exists. Please check the address and try again.");
+            }
+
+            // If account is already verified for this exact email
+            if (data.already_verified) {
+                showToast(data.message || 'Email verified. Initiating security assessment...', 'success');
+                await executeScan(email);
+                return;
+            }
+
+            // OTP successfully dispatched via SMTP
+            showToast(data.message || 'Verification passcode dispatched. Please verify mailbox.', 'success');
+            
+            // Transition to OTP verification stage
+            scanBtn.classList.add('hidden');
+            if (otpTargetDisplay) otpTargetDisplay.textContent = email;
+            if (otpBox) {
+                otpBox.classList.remove('hidden');
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+            }
+            if (otpInput) {
+                otpInput.value = '';
+                otpInput.focus();
+            }
+
+        } catch (err) {
+            showToast(err.message, 'danger');
+        } finally {
+            scanBtn.disabled = false;
+            scanBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            if (scanBtnText) scanBtnText.textContent = 'Verify Email & Initiate Scan';
+        }
+    });
+
+    // Step 2: Confirm OTP & Initiate Threat Assessment
+    if (confirmOtpBtn) {
+        confirmOtpBtn.addEventListener('click', async function () {
+            const code = otpInput ? otpInput.value.trim() : '';
+            if (!code || code.length < 6) {
+                showToast('Please enter the 6-digit one-time passcode.', 'warning');
+                if (otpInput) otpInput.focus();
+                return;
+            }
+
+            confirmOtpBtn.disabled = true;
+            confirmOtpBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            if (confirmOtpBtnText) confirmOtpBtnText.textContent = 'Verifying Passcode...';
+
+            try {
+                const response = await fetch('/assessment/api/verify-scan-otp', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: currentTargetEmail,
+                        otp_code: code
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok || !data.success) {
+                    throw new Error(data.error || 'Verification failed. Please check the code.');
+                }
+
+                showToast(data.message || 'Mailbox existence verified! Initiating security scan...', 'success');
+                
+                // Hide OTP box and proceed to scan
+                if (otpBox) otpBox.classList.add('hidden');
+                await executeScan(currentTargetEmail);
+
+            } catch (err) {
+                showToast(err.message, 'danger');
+                if (otpInput) {
+                    otpInput.select();
+                    otpInput.focus();
+                }
+            } finally {
+                confirmOtpBtn.disabled = false;
+                confirmOtpBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                if (confirmOtpBtnText) confirmOtpBtnText.textContent = 'Verify Passcode & Execute Threat Scan';
+            }
+        });
+    }
+
+    // Allow Enter key inside OTP input to submit
+    if (otpInput) {
+        otpInput.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                if (confirmOtpBtn) confirmOtpBtn.click();
+            }
+        });
+    }
+
+    // Resend OTP Code
+    if (resendOtpBtn) {
+        resendOtpBtn.addEventListener('click', async function () {
+            if (!currentTargetEmail) return;
+            resendOtpBtn.disabled = true;
+            resendOtpBtn.textContent = 'Resending...';
+
+            try {
+                const response = await fetch('/assessment/api/request-scan-otp', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: currentTargetEmail,
+                        consent: true
+                    })
+                });
+                const data = await response.json();
+                if (!response.ok || !data.success) {
+                    throw new Error(data.error || 'Failed to resend verification code.');
+                }
+                showToast('A fresh verification code has been dispatched to your email.', 'success');
+            } catch (err) {
+                showToast(err.message, 'danger');
+            } finally {
+                resendOtpBtn.disabled = false;
+                resendOtpBtn.textContent = 'Resend Code';
+            }
+        });
+    }
+
+    // Change Email / Reset to Initial State
+    if (changeEmailBtn) {
+        changeEmailBtn.addEventListener('click', function () {
+            if (otpBox) otpBox.classList.add('hidden');
+            if (scanBtn) scanBtn.classList.remove('hidden');
+            if (emailInput) {
+                emailInput.focus();
+                emailInput.select();
+            }
+        });
+    }
+
+    // Step 3: Run Full External Security Scan
+    async function executeScan(email) {
         scanStatusBox.classList.remove('hidden');
         resultsContainer.classList.add('hidden');
 
-        // Multi-stage visual indicator
-        updateStatusStep('Querying XposedOrNot breach analytics engine...', '30%');
-        
+        updateStatusStep('Connecting to XposedOrNot threat intelligence engine...', '30%');
+
         try {
             const response = await fetch('/assessment/api/scan-email', {
                 method: 'POST',
@@ -51,7 +236,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 })
             });
 
-            updateStatusStep('Synthesizing threat intelligence and generating recommendations...', '80%');
+            updateStatusStep('Analyzing visitor network privacy & reputation indicators...', '65%');
 
             const data = await response.json();
 
@@ -59,22 +244,25 @@ document.addEventListener('DOMContentLoaded', function () {
                 throw new Error(data.error || 'Failed to complete cybersecurity assessment.');
             }
 
-            updateStatusStep('Assessment complete!', '100%');
+            updateStatusStep('Synthesizing remediation action items...', '90%');
+
             setTimeout(() => {
-                scanStatusBox.classList.add('hidden');
-                renderResults(data);
-                resultsContainer.classList.remove('hidden');
-                resultsContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                updateStatusStep('Assessment complete!', '100%');
+                setTimeout(() => {
+                    scanStatusBox.classList.add('hidden');
+                    renderResults(data);
+                    resultsContainer.classList.remove('hidden');
+                    resultsContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    if (scanBtn) scanBtn.classList.remove('hidden');
+                }, 400);
             }, 500);
 
         } catch (err) {
             scanStatusBox.classList.add('hidden');
+            if (scanBtn) scanBtn.classList.remove('hidden');
             showToast(err.message, 'danger');
-        } finally {
-            scanBtn.disabled = false;
-            scanBtn.classList.remove('opacity-50', 'cursor-not-allowed');
         }
-    });
+    }
 
     function updateStatusStep(text, progressWidth) {
         if (statusText) statusText.textContent = text;
@@ -117,7 +305,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             data.breaches.forEach(b => {
                 const card = document.createElement('div');
-                card.className = 'p-5 rounded-2xl bg-[#07150d]/80 border border-[#143321] hover:border-emerald-500/50 transition-all';
+                card.className = 'p-5 rounded-2xl bg-[#07150d]/80 border border-[#143321] hover:border-emerald-500/50 transition-all shadow-md';
                 
                 // Parse exposed data classes into emerald/sage pills
                 const dataClasses = (b.data_classes || 'Profile Data').split(';').filter(x => x.trim().length > 0);
@@ -157,20 +345,21 @@ document.addEventListener('DOMContentLoaded', function () {
             noBreachNotice.classList.remove('hidden');
         }
 
-        // 3. Isolated Network Analysis Box (HackMyIP)
-        const ipInfo = data.ip_analysis;
-        if (ipInfo && ipInfo.ip !== 'Unavailable') {
-            document.getElementById('net-ip').textContent = ipInfo.ip;
-            document.getElementById('net-loc').textContent = `${ipInfo.city || 'Unknown'}, ${ipInfo.country || 'Unknown'}`;
-            document.getElementById('net-isp').textContent = `${ipInfo.isp_org || 'Unknown'} (${ipInfo.asn || ''})`;
-            const proxyBadge = document.getElementById('net-proxy-badge');
-            if (proxyBadge) {
-                if (ipInfo.is_vpn || ipInfo.is_proxy) {
-                    proxyBadge.textContent = 'Proxy / VPN Detected';
-                    proxyBadge.className = 'px-2 py-0.5 text-xs rounded bg-emerald-950 text-emerald-300 border border-emerald-700';
+        // 3. Network IP & Reputation
+        if (data.ip_assessment) {
+            const ip = data.ip_assessment;
+            document.getElementById('res-ip-addr').textContent = ip.ip || 'Unknown';
+            document.getElementById('res-ip-location').textContent = `${ip.city || ''}, ${ip.country || 'Unknown'}`;
+            document.getElementById('res-ip-isp').textContent = `${ip.isp_org || 'Unknown'} (${ip.asn || 'N/A'})`;
+
+            const vpnBadge = document.getElementById('res-vpn-badge');
+            if (vpnBadge) {
+                if (ip.is_vpn || ip.is_proxy || ip.is_tor) {
+                    vpnBadge.textContent = 'Proxy/VPN Detected';
+                    vpnBadge.className = 'px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-950 text-amber-300 border border-amber-700';
                 } else {
-                    proxyBadge.textContent = 'Direct Connection';
-                    proxyBadge.className = 'px-2 py-0.5 text-xs rounded bg-[#0d2216] text-mint-300 border border-emerald-800';
+                    vpnBadge.textContent = 'Clean Residential IP';
+                    vpnBadge.className = 'px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-950 text-emerald-300 border border-emerald-700';
                 }
             }
         }
@@ -181,29 +370,39 @@ document.addEventListener('DOMContentLoaded', function () {
             recList.innerHTML = '';
             data.recommendations.forEach(r => {
                 const item = document.createElement('div');
-                item.className = 'p-4 rounded-xl bg-[#07150d]/80 border border-[#143321] flex flex-col md:flex-row items-start md:items-center justify-between gap-4';
+                item.className = 'p-5 rounded-2xl bg-[#05110a] border border-[#143321] space-y-2.5 shadow-md';
                 
-                const pColor = r.priority === 'Critical' ? 'text-rose-400 border-rose-500/40 bg-rose-950/30' :
-                               r.priority === 'High' ? 'text-amber-400 border-amber-500/40 bg-amber-950/30' :
-                               'text-emerald-400 border-emerald-500/40 bg-emerald-950/30';
+                const pColor = r.priority === 'Critical' ? 'text-rose-400 border-rose-800 bg-rose-950/40' :
+                               r.priority === 'High' ? 'text-amber-400 border-amber-800 bg-amber-950/40' :
+                               'text-mint-400 border-emerald-800 bg-emerald-950/40';
+
+                // Format steps
+                const stepsList = r.action_steps.split('\n')
+                    .filter(s => s.trim().length > 0)
+                    .map(s => `<li class="text-xs text-slate-300 flex items-start gap-2"><span class="text-mint-400 mt-0.5">•</span><span>${s.replace(/^[•\-\*]\s*/, '')}</span></li>`)
+                    .join('');
 
                 item.innerHTML = `
-                    <div class="space-y-1">
+                    <div class="flex items-start justify-between flex-wrap gap-2">
                         <div class="flex items-center gap-2">
-                            <span class="px-2 py-0.5 rounded text-xs font-semibold border ${pColor}">${r.priority}</span>
+                            <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase border ${pColor}">${r.priority}</span>
                             <span class="text-xs text-slate-400 font-mono">${r.category}</span>
                         </div>
-                        <h5 class="font-semibold text-white text-sm">${r.title}</h5>
-                        <p class="text-xs text-slate-300">${r.reason}</p>
                     </div>
-                    <div class="flex items-center gap-2">
-                        ${r.external_url ? `<a href="${r.external_url}" target="_blank" rel="noopener" class="text-xs text-emerald-400 hover:text-emerald-300 hover:underline">Guidance Resource →</a>` : ''}
+                    <h4 class="text-sm font-bold text-white">${r.title}</h4>
+                    <p class="text-xs text-slate-400">${r.reason}</p>
+                    <div class="pt-2 border-t border-[#0d2216]">
+                        <div class="text-[11px] font-semibold text-slate-300 mb-1 font-mono uppercase tracking-wider">Action Steps:</div>
+                        <ul class="space-y-1">${stepsList}</ul>
                     </div>
                 `;
                 recList.appendChild(item);
             });
         }
 
-        if (window.lucide) window.lucide.createIcons();
+        // Refresh Lucide icons in dynamically created DOM
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
     }
 });
