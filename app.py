@@ -12,7 +12,7 @@ login_manager = LoginManager()
 def create_app(config_name=None):
     """Application factory for Digital Footprint Intelligence."""
     if config_name is None:
-        config_name = os.environ.get('FLASK_ENV', 'development')
+        config_name = os.environ.get('FLASK_ENV', 'production')
         
     app = Flask(__name__)
     app.config.from_object(config_by_name.get(config_name, config_by_name['default']))

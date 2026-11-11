@@ -79,3 +79,17 @@ config_by_name = {
     'default': DevelopmentConfig
 }
 
+
+class ProductionConfig(Config):
+    DEBUG = False
+    TESTING = False
+    SECRET_KEY = os.environ.get('SECRET_KEY')
+    WTF_CSRF_SECRET_KEY = os.environ.get('WTF_CSRF_SECRET_KEY') or SECRET_KEY
+    SESSION_COOKIE_SECURE = True
+
+    # Render PostgreSQL database
+    SQLALCHEMY_DATABASE_URI = os.environ.get(
+        'DATABASE_URL',
+        Config.SQLALCHEMY_DATABASE_URI
+    )
+
